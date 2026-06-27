@@ -1,5 +1,4 @@
-from pygame import color
-from .node import Node, _pathfinding_stub
+from .node import Node
 from .csp import get_reachable_cells
 
 def solution(node):

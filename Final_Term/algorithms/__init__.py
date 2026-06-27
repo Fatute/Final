@@ -3,7 +3,7 @@ from .visualizers import (
     greedy_best_first, a_star, ida_star,
     hill_climbing, simulated_annealing, beam_search,
     dls, ids, bidirectional_search,
-    simple_backtracking, backtracking_mrv, backtracking_forward_checking,
+    simple_backtracking, backtracking_ac3, backtracking_forward_checking,
     minimax_search, alphabeta_search, expectimax_search
 )
 from .csp import get_reachable_cells

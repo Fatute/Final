@@ -21,7 +21,7 @@ from .blind import (
 )
 from .csp import (
     simple_backtracking as simple_backtracking_standard,
-    backtracking_mrv as backtracking_mrv_standard,
+    backtracking_ac3 as backtracking_ac3_standard,
     backtracking_forward_checking as backtracking_forward_checking_standard
 )
 from .adversarial import (
@@ -47,58 +47,36 @@ def make_path_visualizer(algo_func):
                 is_last_step = (i == len(full_path) - 1)
                 yield visited_so_far, [], current_node, path_so_far, is_last_step
         else:
-            yield set(), [], start, None, True
+            yield set(), [], start, None, False
     return visualizer
 
-# --- CSP Helper Visualizer ---
-def make_csp_visualizer(csp_func):
+# --- Blocking CSP Visualizer ---
+def make_blocking_csp_visualizer(csp_func):
     def visualizer(grid, start, goal, *args, **kwargs):
         from .csp import get_reachable_cells
-        reachable = get_reachable_cells(grid, start)
-        
-        # Compute distances for get_unsafe_set
-        dist = {}
-        for s in reachable:
-            dist[s] = {s: 0}
-            q = [s]
-            while q:
-                curr = q.pop(0)
-                r, c = curr
-                d = dist[s][curr]
-                for nr, nc in [(r-1, c), (r+1, c), (r, c-1), (r, c+1)]:
-                    if (nr, nc) in reachable:
-                        if (nr, nc) not in dist[s]:
-                            dist[s][(nr, nc)] = d + 1
-                            q.append((nr, nc))
+        full_reachable = get_reachable_cells(grid, start)
 
-        def get_unsafe_set(placed):
-            unsafe = set()
-            for c in reachable:
-                if dist[c][start] < 5:
-                    unsafe.add(c)
-            placed_rows = {g[0] for g in placed}
-            placed_cols = {g[1] for g in placed}
-            for c in reachable:
-                if c[0] in placed_rows or c[1] in placed_cols:
-                    unsafe.add(c)
-                    continue
-                for g in placed:
-                    if dist[c][g] < 3:
-                        unsafe.add(c)
-                        break
-            return unsafe
+        solution, steps = csp_func(grid, start, goal, *args, **kwargs)
 
-        # Run standard CSP solver
-        solution = csp_func(grid, start, goal, *args, **kwargs)
-        
-        # Yield initial state
-        yield get_unsafe_set([]), [], start, [], False
-        
-        if solution:
-            # Yield final state with 5 ghosts
-            yield get_unsafe_set(solution), [], solution[-1] if solution else start, list(solution), True
-        else:
-            yield get_unsafe_set([]), [], start, [], True
+        # Initial state: show full reachable area, no ghosts
+        yield full_reachable, [], start, [], False
+
+        for step in steps:
+            stype = step[0]
+            if stype == 'try':
+                _, current, placed, reachable = step
+                yield reachable, [], current, placed, False
+            elif stype == 'backtrack':
+                _, removed, placed, reachable = step
+                curr = placed[-1] if placed else start
+                yield reachable, [], curr, placed, False
+            elif stype == 'found':
+                _, placed = step
+                # Show empty reachable area (all paths blocked)
+                yield set(), [], placed[-1] if placed else start, placed, True
+
+        if not solution:
+            yield full_reachable, [], start, [], False
     return visualizer
 
 # --- Adversarial Helper Visualizer ---
@@ -161,9 +139,9 @@ dls = make_path_visualizer(dls_standard)
 ids = make_path_visualizer(ids_standard)
 bidirectional_search = make_path_visualizer(bidirectional_search_standard)
 
-simple_backtracking = make_csp_visualizer(simple_backtracking_standard)
-backtracking_mrv = make_csp_visualizer(backtracking_mrv_standard)
-backtracking_forward_checking = make_csp_visualizer(backtracking_forward_checking_standard)
+simple_backtracking = make_blocking_csp_visualizer(simple_backtracking_standard)
+backtracking_ac3 = make_blocking_csp_visualizer(backtracking_ac3_standard)
+backtracking_forward_checking = make_blocking_csp_visualizer(backtracking_forward_checking_standard)
 
 minimax_search = make_adversarial_visualizer(minimax_search_standard)
 alphabeta_search = make_adversarial_visualizer(alphabeta_search_standard)

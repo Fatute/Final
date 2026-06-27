@@ -188,16 +188,36 @@ class MazeVisualizer:
                         pygame.draw.circle(screen, (248, 187, 208), (cell_x + self.cell_size // 2, cell_y + self.cell_size // 2), 3)
                         
         if is_csp:
+            # ── Blocking CSP ──────────────────────────────────────
+            # Draw reachable area (green tint) — shrinks as ghosts block paths
+            if visited:
+                reach_surf = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
+                pygame.draw.rect(reach_surf, (0, 210, 120, 65),
+                                 (1, 1, self.cell_size - 2, self.cell_size - 2))
+                for r, c in visited:
+                    if (r, c) != START_CELL:
+                        screen.blit(reach_surf,
+                                    (self.x_offset + c * self.cell_size,
+                                     self.y_offset + r * self.cell_size))
+
             # Draw placed Ghosts
             for pr, pc in placed_pacmans:
                 px = self.x_offset + pc * self.cell_size + self.cell_size // 2
                 py = self.y_offset + pr * self.cell_size + self.cell_size // 2
                 draw_ghost(screen, px, py, self.cell_size - 4, (244, 67, 54))
-            # Draw current active placement cell candidate (cyan block)
-            if current:
+
+            # Draw current candidate cell being tried (yellow border)
+            if current and current not in placed_pacmans and current != START_CELL:
                 curr_x = self.x_offset + current[1] * self.cell_size
                 curr_y = self.y_offset + current[0] * self.cell_size
-                pygame.draw.rect(screen, (0, 229, 255), (curr_x + 1, curr_y + 1, self.cell_size - 2, self.cell_size - 2), 2)
+                pygame.draw.rect(screen, (255, 220, 0),
+                                 (curr_x + 1, curr_y + 1, self.cell_size - 2, self.cell_size - 2), 3)
+
+            # Draw Pacman at start
+            pac_x = self.x_offset + START_CELL[1] * self.cell_size + self.cell_size // 2
+            pac_y = self.y_offset + START_CELL[0] * self.cell_size + self.cell_size // 2
+            draw_pacman(screen, pac_x, pac_y, self.cell_size // 2 - 2, self.pacman_mouth_angle)
+
         else:
             # Draw Visited Cells (Semi-transparent cyan)
             visited_surf = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)

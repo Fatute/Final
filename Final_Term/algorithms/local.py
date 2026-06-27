@@ -41,6 +41,8 @@ def hill_climbing(grid, start, goal):
         path.append(curr)
         visited.add(curr)
         
+    if heuristic(curr, visited, grid) > 0:
+        return []
     return path
 
 
@@ -137,7 +139,7 @@ def simulated_annealing(grid, start, goal):
         if delta < 0:
             accept = True
         else:
-            p = math.exp(-delta / T) if T > 0 else 0
+            p = math.exp(-delta / T)
             if random.random() < p:
                 accept = True
                 
@@ -148,4 +150,6 @@ def simulated_annealing(grid, start, goal):
             
         T *= alpha
         
+    if heuristic(curr, visited, grid) > 0:
+        return []
     return path
