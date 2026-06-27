@@ -180,8 +180,8 @@ class Application:
             desc = "Các giải thuật tối ưu hóa cục bộ. Chúng không lưu vết cây tìm kiếm mà chỉ cập nhật trạng thái hiện tại dựa trên hàng xóm. Phù hợp cho không gian trạng thái cực lớn."
             card_color = COLOR_CYAN
         elif group_index == 3:
-            algos = ["DLS", "IDS", "Bidirectional BFS"]
-            desc = "Dạng thuật toán tìm kiếm mù (uninformed). DLS giới hạn độ sâu; IDS tăng dần giới hạn này; Bidirectional tìm kiếm đồng thời từ cả hai phía để giảm lũy thừa số bước."
+            algos = ["Sensorless BFS", "Partial BFS", "Bidirectional BFS"]
+            desc = "Dạng thuật toán tìm kiếm mù (uninformed). Sensorless BFS lập kế hoạch để các trạng thái niềm tin cùng đi tới đích; Partial BFS giải quyết khi chỉ biết 1 phần bản đồ; Bidirectional tìm đồng thời từ 2 phía."
             card_color = COLOR_ORANGE
         elif group_index == 4:
             algos = ["Simple Backtracking", "Backtracking + AC-3", "Backtracking + Forward Checking"]
@@ -231,6 +231,8 @@ class Application:
         self.csp_steps = 0
         self.p1_score = 0
         self.p2_score = 0
+        self.path_b1 = None
+        self.path_b2 = None
         
         # Get active maze based on selected group
         from config import MAZE_0, MAZE_1, MAZE_2, MAZE_3, MAZE_4, MAZE_5, DEFAULT_MAZE
@@ -272,10 +274,40 @@ class Application:
             self.generator = algorithms.simulated_annealing(active_maze, START_CELL, active_maze_goal)
         elif algo == "Beam Search":
             self.generator = algorithms.beam_search(active_maze, START_CELL, active_maze_goal)
-        elif algo == "DLS":
-            self.generator = algorithms.dls(active_maze, START_CELL, active_maze_goal, depth_limit=18)
-        elif algo == "IDS":
-            self.generator = algorithms.ids(active_maze, START_CELL, active_maze_goal)
+        elif algo == "Sensorless BFS":
+            grid_1 = [row.copy() for row in active_maze_goal]
+            grid_1[5][7] = 0
+            
+            grid_2 = [row.copy() for row in active_maze_goal]
+            grid_2[5][7] = 0
+            grid_2[2][2] = 0 # Break a wall
+            grid_2[2][3] = 0 # Break a wall
+            grid_2[3][4] = 2 # Add a wall
+            
+            self.grid_1 = grid_1
+            self.grid_2 = grid_2
+            self.generator = algorithms.sensorless_bfs(grid_1, grid_2, START_CELL, (1, 3), (5, 7))
+        elif algo == "Partial BFS":
+            grid_1 = [row.copy() for row in active_maze_goal]
+            grid_1[5][7] = 0
+            grid_1[3][4] = 2 # Block middle path
+            grid_1[1][4] = 2 # Block top path in True Map (so it must go bottom)
+            
+            grid_2 = [row.copy() for row in active_maze_goal]
+            grid_2[5][7] = 0
+            grid_2[3][4] = 2 # Block middle path
+            grid_2[5][3] = 2 # Block bottom path in Belief 1 (so it must go top)
+            
+            self.grid_1 = grid_1
+            self.grid_2 = grid_2
+            
+            self.unknown_mask = set()
+            for r in range(len(grid_1)):
+                for c in range(len(grid_1[0])):
+                    if r >= 4 or c >= 4:
+                        self.unknown_mask.add((r, c))
+                        
+            self.generator = algorithms.partial_bfs(grid_1, grid_2, START_CELL, (5, 7))
         elif algo == "Bidirectional BFS":
             self.generator = algorithms.bidirectional_search(active_maze, START_CELL, active_maze_goal)
         elif algo == "Simple Backtracking":
@@ -291,7 +323,10 @@ class Application:
         elif algo == "Expectimax":
             self.generator = algorithms.expectimax_search(active_maze, START_CELL, active_maze_goal)
             
-        self.visualizer_maze.grid = [row.copy() for row in active_maze]
+        if algo in ["Sensorless BFS", "Partial BFS"]:
+            self.visualizer_maze.grid = self.grid_1
+        else:
+            self.visualizer_maze.grid = [row.copy() for row in active_maze]
         
         # Calculate dynamic centering offsets based on group
         if group == 3:  # Blind search
@@ -323,7 +358,9 @@ class Application:
             prev_path = self.path.copy() if self.path else []
             
             # All algorithms yield standard pathfinding structure (visited, frontier, current, path, found)
-            if self.selected_group == 5:
+            if self.selected_algo in ["Sensorless BFS", "Partial BFS"]:
+                self.visited, self.frontier, self.current_node, self.path, self.found, self.path_b1, self.path_b2 = val
+            elif self.selected_group == 5:
                 self.visited, self.frontier, self.current_node, self.path, self.found, self.p1_score, self.p2_score = val
             else:
                 self.visited, self.frontier, self.current_node, self.path, self.found = val
@@ -449,7 +486,69 @@ class Application:
         pygame.draw.line(screen, (33, 150, 243), (30, 80), (994, 80), 2)
         
         # Main Visualizer Drawing Area
-        if True: # Both pathfinding and CSP now use the same visualizer layout
+        if self.selected_algo in ["Sensorless BFS", "Partial BFS"]:
+            is_partial = self.selected_algo == "Partial BFS"
+            
+            if is_partial:
+                # Partial Map (Top Left)
+                self.visualizer_maze.grid = self.grid_1
+                self.visualizer_maze.x_offset = 60
+                self.visualizer_maze.y_offset = 120
+                self.visualizer_maze.draw(screen, self.visited, self.frontier, self.current_node, self.path, found=self.found, is_sensorless=True, unknown_mask=self.unknown_mask)
+                
+                # True State Map (Top Right)
+                self.visualizer_maze.grid = self.grid_1
+                self.visualizer_maze.x_offset = 440
+                self.visualizer_maze.y_offset = 120
+                self.visualizer_maze.draw(screen, self.visited, self.frontier, self.current_node, self.path, found=self.found, is_sensorless=True)
+            else:
+                # True State Map (Top Center)
+                self.visualizer_maze.grid = self.grid_1
+                self.visualizer_maze.x_offset = 250
+                self.visualizer_maze.y_offset = 120
+                self.visualizer_maze.draw(screen, self.visited, self.frontier, self.current_node, self.path, found=self.found, is_sensorless=True)
+            
+            # Belief 1 Map (Bottom Left)
+            self.visualizer_maze.grid = self.grid_2
+            self.visualizer_maze.x_offset = 60
+            self.visualizer_maze.y_offset = 380
+            curr_b1 = self.path_b2[-1] if self.path_b2 else (START_CELL if is_partial else (1, 3))
+            self.visualizer_maze.draw(screen, set(self.path_b2) if self.path_b2 else set(), [], curr_b1, self.path_b2, found=self.found, is_sensorless=True)
+            
+            # Belief 2 Map (Bottom Right)
+            self.visualizer_maze.grid = self.grid_1
+            self.visualizer_maze.x_offset = 440
+            self.visualizer_maze.y_offset = 380
+            curr_b2 = self.path_b1[-1] if self.path_b1 else START_CELL
+            self.visualizer_maze.draw(screen, set(self.path_b1) if self.path_b1 else set(), [], curr_b2, self.path_b1, found=self.found, is_sensorless=True)
+            
+            # Labels
+            maze_width = self.visualizer_maze.cell_size * len(self.visualizer_maze.grid[0])
+            
+            if is_partial:
+                lbl_partial = self.stats_font.render("Góc nhìn của Pacman", True, COLOR_TEXT)
+                screen.blit(lbl_partial, (60 + maze_width//2 - lbl_partial.get_width()//2, 120 - 30))
+                lbl_true = self.stats_font.render("Trạng thái chính xác", True, COLOR_TEXT)
+                screen.blit(lbl_true, (440 + maze_width//2 - lbl_true.get_width()//2, 120 - 30))
+            else:
+                lbl_true = self.stats_font.render("Trạng thái chính xác", True, COLOR_TEXT)
+                screen.blit(lbl_true, (250 + maze_width//2 - lbl_true.get_width()//2, 120 - 30))
+                
+            lbl_b1 = self.stats_font.render("Trạng thái niềm tin 1", True, COLOR_TEXT)
+            screen.blit(lbl_b1, (60 + maze_width//2 - lbl_b1.get_width()//2, 380 - 30))
+            
+            lbl_b2 = self.stats_font.render("Trạng thái niềm tin 2", True, COLOR_TEXT)
+            screen.blit(lbl_b2, (440 + maze_width//2 - lbl_b2.get_width()//2, 380 - 30))
+            
+            # Bottom Info Card
+            info = ALGO_INFO.get(self.selected_algo, {"title": self.selected_algo, "desc": ""})
+            bottom_card = Card(30, 620, 672, 120, info["title"], info["desc"])
+            bottom_card.draw(screen)
+            
+            # Reset offsets for other algorithms just in case
+            self.visualizer_maze.x_offset = 30
+            self.visualizer_maze.y_offset = 150
+        else:
             self.visualizer_maze.draw(
                 screen, self.visited, self.frontier, self.current_node, self.path, 
                 is_adversarial=(self.selected_group == 5), 
@@ -500,7 +599,6 @@ class Application:
                 f"Độ dài đường đi: {len(self.path) if self.path else 0}",
                 f"Tổng chi phí: {self.get_path_cost()}"
             ]
-        else:
             # Blocking CSP Stats
             status_text = "Đang chạy..." if self.is_running else ("Đã chặn!" if self.found else ("Không thể chặn!" if self.has_run else "Tạm dừng/Chưa chạy"))
             stats_list = [
@@ -552,7 +650,7 @@ class Application:
                             elif group == 2:
                                 names = ["Hill Climbing", "Beam Search", "Simulated Annealing"]
                             elif group == 3:
-                                names = ["DLS", "IDS", "Bidirectional BFS"]
+                                names = ["Sensorless BFS", "Partial BFS", "Bidirectional BFS"]
                             elif group == 4:
                                 names = ["Simple Backtracking", "Backtracking + MRV", "Backtracking + Forward Checking"]
                             else: # group == 5

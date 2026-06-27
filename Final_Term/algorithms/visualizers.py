@@ -15,8 +15,8 @@ from .local import (
     beam_search as beam_search_standard
 )
 from .blind import (
-    dls as dls_standard,
-    ids as ids_standard,
+    sensorless_bfs as sensorless_bfs_standard,
+    partial_bfs as partial_bfs_standard,
     bidirectional_search as bidirectional_search_standard
 )
 from .csp import (
@@ -122,6 +122,84 @@ def make_adversarial_visualizer(adversarial_func):
                 break
     return visualizer
 
+# --- Sensorless Helper Visualizer ---
+def make_sensorless_visualizer(algo_func):
+    def visualizer(grid_1, grid_2, start_1, start_2, goal, *args, **kwargs):
+        actions = algo_func(grid_1, grid_2, start_1, start_2, goal, *args, **kwargs)
+        
+        def apply_action(r, c, m, action):
+            nr, nc = r, c
+            if action == 'U': nr -= 1
+            elif action == 'D': nr += 1
+            elif action == 'L': nc -= 1
+            elif action == 'R': nc += 1
+            
+            grid = grid_1 if m == 1 else grid_2
+            if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                return (nr, nc)
+            return (r, c)
+            
+        t_pos, b2_pos = start_1, start_2
+        path_t, path_b1, path_b2 = [t_pos], [b2_pos], [t_pos]
+        
+        # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
+        yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
+        
+        if actions:
+            for i, a in enumerate(actions):
+                t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
+                b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
+                
+                path_t.append(t_pos)
+                path_b1.append(b2_pos)
+                path_b2.append(t_pos)
+                
+                is_last_step = (i == len(actions) - 1)
+                yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)
+        else:
+            yield set(), [], start_1, [], True, [], []
+            
+    return visualizer
+
+# --- Partial Helper Visualizer ---
+def make_partial_visualizer(algo_func):
+    def visualizer(grid_1, grid_2, start, goal, *args, **kwargs):
+        actions = algo_func(grid_1, grid_2, start, goal, *args, **kwargs)
+        
+        def apply_action(r, c, m, action):
+            nr, nc = r, c
+            if action == 'U': nr -= 1
+            elif action == 'D': nr += 1
+            elif action == 'L': nc -= 1
+            elif action == 'R': nc += 1
+            
+            grid = grid_1 if m == 1 else grid_2
+            if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                return (nr, nc)
+            return (r, c)
+            
+        t_pos, b2_pos = start, start
+        path_t, path_b1, path_b2 = [t_pos], [t_pos], [b2_pos]
+        
+        # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
+        yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
+        
+        if actions:
+            for i, a in enumerate(actions):
+                t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
+                b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
+                
+                path_t.append(t_pos)
+                path_b1.append(t_pos)
+                path_b2.append(b2_pos)
+                
+                is_last_step = (i == len(actions) - 1)
+                yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)
+        else:
+            yield set(), [], start, [], True, [], []
+            
+    return visualizer
+
 # --- Instantiate Visualizers ---
 bfs = make_path_visualizer(bfs_standard)
 dfs = make_path_visualizer(dfs_standard)
@@ -135,8 +213,8 @@ hill_climbing = make_path_visualizer(hill_climbing_standard)
 simulated_annealing = make_path_visualizer(simulated_annealing_standard)
 beam_search = make_path_visualizer(beam_search_standard)
 
-dls = make_path_visualizer(dls_standard)
-ids = make_path_visualizer(ids_standard)
+sensorless_bfs = make_sensorless_visualizer(sensorless_bfs_standard)
+partial_bfs = make_partial_visualizer(partial_bfs_standard)
 bidirectional_search = make_path_visualizer(bidirectional_search_standard)
 
 simple_backtracking = make_blocking_csp_visualizer(simple_backtracking_standard)

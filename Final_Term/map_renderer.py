@@ -149,7 +149,7 @@ class MazeVisualizer:
     def reset(self):
         self.grid = [row.copy() for row in DEFAULT_MAZE]
         
-    def draw(self, screen, visited, frontier, current, path, is_adversarial=False, is_csp=False, placed_pacmans=[], found=False):
+    def draw(self, screen, visited, frontier, current, path, is_adversarial=False, is_csp=False, placed_pacmans=[], found=False, is_sensorless=False, unknown_mask=None):
         # Update Pacman mouth animation
         if self.mouth_closing:
             self.pacman_mouth_angle -= 2
@@ -186,6 +186,15 @@ class MazeVisualizer:
                     is_covered = False
                     if val == 1 and not is_special_cell and not is_covered:
                         pygame.draw.circle(screen, (248, 187, 208), (cell_x + self.cell_size // 2, cell_y + self.cell_size // 2), 3)
+                        
+                    if is_sensorless and (r, c) == (5, 7):
+                        pygame.draw.rect(screen, (76, 175, 80), (cell_x + 2, cell_y + 2, self.cell_size - 4, self.cell_size - 4))
+                        font = get_best_font(FONT_FAMILIES, 12, bold=True)
+                        lbl_exit = font.render("OUT", True, (255, 255, 255))
+                        screen.blit(lbl_exit, (cell_x + self.cell_size//2 - lbl_exit.get_width()//2, cell_y + self.cell_size//2 - lbl_exit.get_height()//2))
+                        
+                if unknown_mask and (r, c) in unknown_mask:
+                    pygame.draw.rect(screen, (0, 0, 0), (cell_x, cell_y, self.cell_size, self.cell_size))
                         
         if is_csp:
             # ── Blocking CSP ──────────────────────────────────────
