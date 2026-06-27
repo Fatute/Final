@@ -132,13 +132,13 @@ ALGO_INFO = {
         "title": "Beam Search",
         "desc": "Thuật toán tìm kiếm chùm (Beam Search). Chỉ giữ lại k trạng thái tốt nhất ở mỗi bước tìm kiếm để hạn chế không gian bộ nhớ."
     },
-    "DLS": {
-        "title": "Depth-Limited Search (DLS)",
-        "desc": "Tìm kiếm giới hạn độ sâu. Là thuật toán DFS nhưng dừng lại khi đạt tới giới hạn độ sâu L cho trước (ở đây là 18), giúp tránh đi vô hạn vào các nhánh sâu vô hạn."
+    "Sensorless BFS": {
+        "title": "Sensorless BFS (Conformant Planning)",
+        "desc": "Tìm kiếm không cần cảm biến. Khởi đầu với một tập hợp các trạng thái niềm tin (belief state). Tìm chuỗi hành động để mọi trạng thái có thể đều đi đến Goal."
     },
-    "IDS": {
-        "title": "Iterative Deepening DFS (IDS)",
-        "desc": "Tìm kiếm sâu dần. Chạy DLS lặp đi lặp lại với độ sâu giới hạn tăng dần (0, 2, 4...). Kết hợp tính tiết kiệm bộ nhớ của DFS và tính tối ưu của BFS."
+    "Partial BFS": {
+        "title": "Partial BFS (Unknown Map)",
+        "desc": "Tìm kiếm khi chỉ biết một phần bản đồ. Lập kế hoạch sao cho dù cấu trúc phần chưa biết (bóng tối) có ra sao, Pacman vẫn đến đích."
     },
     "Bidirectional BFS": {
         "title": "Bidirectional Search",
