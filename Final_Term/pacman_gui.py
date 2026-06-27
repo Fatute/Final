@@ -599,6 +599,7 @@ class Application:
                 f"Độ dài đường đi: {len(self.path) if self.path else 0}",
                 f"Tổng chi phí: {self.get_path_cost()}"
             ]
+        else:
             # Blocking CSP Stats
             status_text = "Đang chạy..." if self.is_running else ("Đã chặn!" if self.found else ("Không thể chặn!" if self.has_run else "Tạm dừng/Chưa chạy"))
             stats_list = [
@@ -652,7 +653,7 @@ class Application:
                             elif group == 3:
                                 names = ["Sensorless BFS", "Partial BFS", "Bidirectional BFS"]
                             elif group == 4:
-                                names = ["Simple Backtracking", "Backtracking + MRV", "Backtracking + Forward Checking"]
+                                names = ["Simple Backtracking", "Backtracking + AC-3", "Backtracking + Forward Checking"]
                             else: # group == 5
                                 names = ["Minimax", "Alpha-Beta Pruning", "Expectimax"]
                                 

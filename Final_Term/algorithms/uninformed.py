@@ -138,7 +138,7 @@ def dfs(grid, start, goal):
 #UCS
 def ucs(grid, start, goal):
     total_food = len(get_reachable_cells(grid, start))
-    node = Node(start, g = total_food)
+    node = Node(start, g=0)
     frontier = [node]
     reached_set = set()
     reached_order = []
@@ -167,8 +167,15 @@ def ucs(grid, start, goal):
 
         for state in moves(grid, node.state):
             if state not in reached_set:
-                child = Node(state, parent=node, g=node.g -1)
-                if not any(n.state == state for n in frontier):
+                child = Node(state, parent=node, g=node.g + 1)
+                # If there's an existing node with the same state in frontier,
+                # we update it if the new cost is smaller
+                existing = next((n for n in frontier if n.state == state), None)
+                if existing:
+                    if child.g < existing.g:
+                        frontier.remove(existing)
+                        frontier.append(child)
+                else:
                     frontier.append(child)
 
     return []
