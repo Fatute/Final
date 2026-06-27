@@ -8,7 +8,3 @@ class Node:
         
     def __lt__(self, other):
         return self.f < other.f
-
-def _pathfinding_stub(grid, start, goal):
-    """A helper generator that yields the initial state of the maze visualizer and then stops."""
-    yield set(), [], start, None, False

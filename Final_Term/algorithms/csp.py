@@ -13,189 +13,255 @@ def get_reachable_cells(grid, start):
                     queue.append(neighbor)
     return visited
 
+
+# ─────────────────────────────────────────────
+#  Ghost Blocking CSP — shared helpers
+# ─────────────────────────────────────────────
+
+def _bfs_reachable(grid, start, blocked):
+    """BFS returning cells reachable from start, avoiding blocked cells."""
+    if start in blocked:
+        return set()
+    reachable = {start}
+    queue = [start]
+    while queue:
+        r, c = queue.pop(0)
+        for nr, nc in [(r-1, c), (r+1, c), (r, c-1), (r, c+1)]:
+            nb = (nr, nc)
+            if (0 <= nr < len(grid) and 0 <= nc < len(grid[0])
+                    and grid[nr][nc] != 2 and nb not in blocked and nb not in reachable):
+                reachable.add(nb)
+                queue.append(nb)
+    return reachable
+
+
+def _neighbors(grid, pos):
+    r, c = pos
+    result = []
+    for nr, nc in [(r-1, c), (r+1, c), (r, c-1), (r, c+1)]:
+        if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+            result.append((nr, nc))
+    return result
+
+
+def _is_all_blocked(grid, start, food_cells, ghosts):
+    reach = _bfs_reachable(grid, start, set(ghosts))
+    return not (food_cells & reach)
+
+
+def _get_chokepoints(grid, start, food_cells, forbidden):
+    """Cells whose removal reduces reachable food count."""
+    reachable = get_reachable_cells(grid, start)
+    result = []
+    for c in sorted(reachable):
+        if c in forbidden:
+            continue
+        if len(food_cells & _bfs_reachable(grid, start, {c})) < len(food_cells):
+            result.append(c)
+    return result
+
+
+def _setup_blocking(grid, start):
+    """Shared setup: food cells, forbidden zone, chokepoints."""
+    reachable = get_reachable_cells(grid, start)
+    # Forbidden: only the Pacman spawn cell itself (ghost cannot overlap with Pacman)
+    forbidden = {start}
+    food_cells = frozenset(
+        (r, c) for r, c in reachable if grid[r][c] == 1 and (r, c) != start
+    )
+    chokepoints = _get_chokepoints(grid, start, food_cells, forbidden)
+    return food_cells, forbidden, chokepoints
+
+
+# ─────────────────────────────────────────────
+#  1. Simple Backtracking Ghost Blocking
+# ─────────────────────────────────────────────
+
 def simple_backtracking(grid, start, goal):
-    reachable = get_reachable_cells(grid, start)
-    
-    # Precompute shortest path distances between all reachable cells
-    dist = {}
-    for s in reachable:
-        dist[s] = {s: 0}
-        q = [s]
-        while q:
-            curr = q.pop(0)
-            r, c = curr
-            d = dist[s][curr]
-            for nr, nc in [(r-1, c), (r+1, c), (r, c-1), (r, c+1)]:
-                if (nr, nc) in reachable:
-                    if (nr, nc) not in dist[s]:
-                        dist[s][(nr, nc)] = d + 1
-                        q.append((nr, nc))
+    food_cells, _, chokepoints = _setup_blocking(grid, start)
+    if not food_cells or not chokepoints:
+        return None, []
 
-    # Candidate cells: must be at least 5 steps away from start
-    candidates = sorted([c for c in reachable if dist[c][start] >= 5])
-    path = []
+    steps = []
+    placed = []
 
-    def backtrack(cand_idx):
-        if len(path) == 5:
-            return True
-            
-        for i in range(cand_idx, len(candidates)):
-            c = candidates[i]
-            
-            # Check constraints (inter-ghost distance >= 3, and no same row/col)
-            if all(dist[c][g] >= 3 for g in path) and all(c[0] != g[0] and c[1] != g[1] for g in path):
-                path.append(c)
-                
-                if backtrack(i + 1):
-                    return True
-                    
-                path.pop()
-                
-        return False
-
-    if backtrack(0):
-        return path
-    return None
-
-
-def backtracking_mrv(grid, start, goal):
-    reachable = get_reachable_cells(grid, start)
-    
-    # Precompute shortest path distances
-    dist = {}
-    for s in reachable:
-        dist[s] = {s: 0}
-        q = [s]
-        while q:
-            curr = q.pop(0)
-            r, c = curr
-            d = dist[s][curr]
-            for nr, nc in [(r-1, c), (r+1, c), (r, c-1), (r, c+1)]:
-                if (nr, nc) in reachable:
-                    if (nr, nc) not in dist[s]:
-                        dist[s][(nr, nc)] = d + 1
-                        q.append((nr, nc))
-
-    candidates = sorted([c for c in reachable if dist[c][start] >= 5])
-    path = []
-    
-    def get_unsafe_set(placed):
-        unsafe = set()
-        for c in reachable:
-            if dist[c][start] < 5:
-                unsafe.add(c)
-        placed_rows = {g[0] for g in placed}
-        placed_cols = {g[1] for g in placed}
-        for c in reachable:
-            if c[0] in placed_rows or c[1] in placed_cols:
-                unsafe.add(c)
-                continue
-            for g in placed:
-                if dist[c][g] < 3:
-                    unsafe.add(c)
-                    break
-        return unsafe
-
-    def backtrack(cand_idx):
-        if len(path) == 5:
-            return True
-            
-        unsafe = get_unsafe_set(path)
-        current_candidates = [c for c in candidates[cand_idx:] if c not in unsafe and all(dist[c][g] >= 3 for g in path) and all(c[0] != g[0] and c[1] != g[1] for g in path)]
-        
-        # MRV: sort current_candidates by the number of other compatible remaining candidates
-        def get_compatible_count(c):
-            count = 0
-            for other in current_candidates:
-                if other != c and dist[c][other] >= 3 and c[0] != other[0] and c[1] != other[1]:
-                    count += 1
-            return count
-            
-        current_candidates.sort(key=get_compatible_count)
-        
-        for c in current_candidates:
-            path.append(c)
-            idx_in_candidates = candidates.index(c)
-            
-            if backtrack(idx_in_candidates + 1):
+    def backtrack(idx, k_rem):
+        if k_rem == 0:
+            return _is_all_blocked(grid, start, food_cells, placed)
+        if len(chokepoints) - idx < k_rem:
+            return False
+        for i in range(idx, len(chokepoints)):
+            c = chokepoints[i]
+            placed.append(c)
+            reach = _bfs_reachable(grid, start, set(placed))
+            steps.append(('try', c, placed.copy(), reach))
+            if backtrack(i + 1, k_rem - 1):
                 return True
-                
-            path.pop()
-            
+            placed.pop()
+            reach = _bfs_reachable(grid, start, set(placed))
+            steps.append(('backtrack', c, placed.copy(), reach))
         return False
 
-    if backtrack(0):
-        return path
-    return None
+    solution = None
+    for k in range(1, len(chokepoints) + 1):
+        placed.clear()
+        steps.clear()
+        if backtrack(0, k):
+            solution = placed.copy()
+            steps.append(('found', solution))
+            break
 
+    return solution, steps
+
+# ─────────────────────────────────────────────
+#  2. Backtracking + AC-3 Ghost Blocking
+# ─────────────────────────────────────────────
+
+def _ac3(domains):
+    """
+    AC-3 algorithm: enforce arc consistency for Xi ≠ Xj constraints.
+    domains: dict {variable_id: set of candidate cells}
+    Modifies domains in-place.
+    Returns False if any domain becomes empty (no solution possible).
+    """
+    queue = [(xi, xj) for xi in domains for xj in domains if xi != xj]
+    while queue:
+        xi, xj = queue.pop(0)
+        revised = False
+        for v in list(domains[xi]):
+            # v is arc-consistent with Dj if ∃ w in Dj: w ≠ v
+            if not any(w != v for w in domains[xj]):
+                domains[xi].discard(v)
+                revised = True
+        if revised:
+            if not domains[xi]:
+                return False   # Domain wiped out → no solution
+            # Re-check all arcs pointing to xi
+            for xk in domains:
+                if xk != xi:
+                    queue.append((xk, xi))
+    return True
+
+
+def backtracking_ac3(grid, start, goal):
+    food_cells, _, chokepoints = _setup_blocking(grid, start)
+    if not food_cells or not chokepoints:
+        return None, []
+
+    steps = []
+    placed = []
+
+    def effective_domain(curr_reach):
+        """Keep only chokepoints that still block some remaining reachable food."""
+        remaining_food = food_cells & curr_reach
+        result = set()
+        for c in chokepoints:
+            if c in placed:
+                continue
+            test_reach = _bfs_reachable(grid, start, set(placed) | {c})
+            if len(remaining_food & test_reach) < len(remaining_food):
+                result.add(c)
+        return result
+
+    def backtrack(k_rem, curr_reach):
+        if k_rem == 0:
+            return not bool(food_cells & curr_reach)
+
+        # Build k_rem identical domains from effective candidates
+        base = effective_domain(curr_reach)
+        if not base:
+            return False
+
+        domains = {i: set(base) for i in range(k_rem)}
+
+        # ── AC-3: enforce xi ≠ xj arc consistency ──
+        if not _ac3(domains):
+            return False
+
+        # Use domain[0] (may have been reduced by AC-3)
+        candidates = sorted(domains[0])
+
+        for c in candidates:
+            placed.append(c)
+            new_reach = _bfs_reachable(grid, start, set(placed))
+            steps.append(('try', c, placed.copy(), new_reach))
+
+            if backtrack(k_rem - 1, new_reach):
+                return True
+
+            placed.pop()
+            prev_reach = _bfs_reachable(grid, start, set(placed))
+            steps.append(('backtrack', c, placed.copy(), prev_reach))
+
+        return False
+
+    initial_reach = _bfs_reachable(grid, start, set())
+    solution = None
+    for k in range(1, len(chokepoints) + 1):
+        placed.clear()
+        steps.clear()
+        if backtrack(k, initial_reach):
+            solution = placed.copy()
+            steps.append(('found', solution))
+            break
+
+    return solution, steps
+
+
+# ─────────────────────────────────────────────
+#  3. Backtracking + Forward Checking Ghost Blocking
+# ─────────────────────────────────────────────
 
 def backtracking_forward_checking(grid, start, goal):
-    reachable = get_reachable_cells(grid, start)
-    
-    # Precompute shortest path distances
-    dist = {}
-    for s in reachable:
-        dist[s] = {s: 0}
-        q = [s]
-        while q:
-            curr = q.pop(0)
-            r, c = curr
-            d = dist[s][curr]
-            for nr, nc in [(r-1, c), (r+1, c), (r, c-1), (r, c+1)]:
-                if (nr, nc) in reachable:
-                    if (nr, nc) not in dist[s]:
-                        dist[s][(nr, nc)] = d + 1
-                        q.append((nr, nc))
+    food_cells, _, chokepoints = _setup_blocking(grid, start)
+    if not food_cells or not chokepoints:
+        return None, []
 
-    candidates = sorted([c for c in reachable if dist[c][start] >= 5])
-    path = []
-    
-    def get_unsafe_set(placed):
-        unsafe = set()
-        for c in reachable:
-            if dist[c][start] < 5:
-                unsafe.add(c)
-        placed_rows = {g[0] for g in placed}
-        placed_cols = {g[1] for g in placed}
-        for c in reachable:
-            if c[0] in placed_rows or c[1] in placed_cols:
-                unsafe.add(c)
-                continue
-            for g in placed:
-                if dist[c][g] < 3:
-                    unsafe.add(c)
-                    break
-        return unsafe
+    steps = []
+    placed = []
 
-    def backtrack(cand_idx):
-        if len(path) == 5:
+    def can_still_block(remaining_cands, k_rem):
+        """Forward check: can remaining candidates block all remaining reachable food?"""
+        curr_reach = _bfs_reachable(grid, start, set(placed))
+        remaining_food = food_cells & curr_reach
+        if not remaining_food:
             return True
-            
-        for i in range(cand_idx, len(candidates)):
-            c = candidates[i]
-            
-            # Check constraints (inter-ghost distance >= 3, and no same row/col)
-            if all(dist[c][g] >= 3 for g in path) and all(c[0] != g[0] and c[1] != g[1] for g in path):
-                path.append(c)
-                
-                unsafe = get_unsafe_set(path)
-                frontier = [cand for cand in candidates[i+1:] if cand not in unsafe]
-                
-                # Forward Checking: count remaining compatible candidates
-                remaining_ghosts = 5 - len(path)
-                compatible_remaining = [cand for cand in frontier if all(dist[cand][g] >= 3 for g in path) and all(cand[0] != g[0] and cand[1] != g[1] for g in path)]
-                
-                if len(compatible_remaining) < remaining_ghosts:
-                    path.pop()
-                    continue
-                
-                if backtrack(i + 1):
-                    return True
-                    
-                path.pop()
-                
+        if k_rem == 0:
+            return False
+        # Each remaining food must be blockable by at least one remaining candidate
+        for food in remaining_food:
+            if not any(
+                food not in _bfs_reachable(grid, start, set(placed) | {c})
+                for c in remaining_cands
+            ):
+                return False
+        return True
+
+    def backtrack(idx, k_rem):
+        if k_rem == 0:
+            return _is_all_blocked(grid, start, food_cells, placed)
+        if len(chokepoints) - idx < k_rem:
+            return False
+        for i in range(idx, len(chokepoints)):
+            c = chokepoints[i]
+            placed.append(c)
+            reach = _bfs_reachable(grid, start, set(placed))
+            steps.append(('try', c, placed.copy(), reach))
+            remaining = chokepoints[i + 1:]
+            if can_still_block(remaining, k_rem - 1) and backtrack(i + 1, k_rem - 1):
+                return True
+            placed.pop()
+            reach = _bfs_reachable(grid, start, set(placed))
+            steps.append(('backtrack', c, placed.copy(), reach))
         return False
 
-    if backtrack(0):
-        return path
-    return None
+    solution = None
+    for k in range(1, len(chokepoints) + 1):
+        placed.clear()
+        steps.clear()
+        if backtrack(0, k):
+            solution = placed.copy()
+            steps.append(('found', solution))
+            break
+
+    return solution, steps

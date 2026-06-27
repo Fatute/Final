@@ -32,7 +32,7 @@ from config import (
     GOAL_CELL,
     get_maze_goal
 )
-from map_renderer import MazeVisualizer, ChessboardVisualizer, draw_pacman
+from map_renderer import MazeVisualizer, draw_pacman
 import algorithms
 
 # --- Initializations ---
@@ -101,7 +101,6 @@ class Application:
         
         # Visualizer State
         self.visualizer_maze = MazeVisualizer(30, 150, 32)
-        self.visualizer_chess = ChessboardVisualizer(150, 150, 8, 55)
         
         # Simulation Running variables
         self.is_running = False
@@ -115,6 +114,7 @@ class Application:
         self.current_node = None
         self.path = None
         self.found = False
+        self.has_run = False
         
         # CSP Stats
         self.csp_backtracks = 0
@@ -184,8 +184,8 @@ class Application:
             desc = "Dạng thuật toán tìm kiếm mù (uninformed). Sensorless BFS lập kế hoạch để các trạng thái niềm tin cùng đi tới đích; Partial BFS giải quyết khi chỉ biết 1 phần bản đồ; AND-OR Search dò tìm trong môi trường không tất định."
             card_color = COLOR_ORANGE
         elif group_index == 4:
-            algos = ["Simple Backtracking", "Backtracking + MRV", "Backtracking + Forward Checking"]
-            desc = "Giải bài toán thỏa mãn ràng buộc (CSP). Đặt 5 con ma trên bản đồ lưới sao cho khoảng cách từ các con ma đến Pacman >= 5 ô, khoảng cách giữa các con ma >= 3 ô, đồng thời không con ma nào nằm chung hàng hoặc chung cột với nhau."
+            algos = ["Simple Backtracking", "Backtracking + AC-3", "Backtracking + Forward Checking"]
+            desc = "Ghost Blocking CSP: tìm tập ghost nhỏ nhất để chặn TOÀN BỘ đường đi từ Pacman đến food. Ghost không được đặt trong vòng 1 ô quanh điểm sinh. So sánh 3 chiến lược: Backtracking cơ bản, AC-3 (Arc Consistency) và Forward Checking."
             card_color = COLOR_YELLOW
         else: # 5
             algos = ["Minimax", "Alpha-Beta Pruning", "Expectimax"]
@@ -226,6 +226,7 @@ class Application:
         self.current_node = None
         self.path = None
         self.found = False
+        self.has_run = False
         self.csp_backtracks = 0
         self.csp_steps = 0
         self.p1_score = 0
@@ -314,8 +315,8 @@ class Application:
             self.generator = algorithms.and_or_search(grid_1, START_CELL, (5, 7))
         elif algo == "Simple Backtracking":
             self.generator = algorithms.simple_backtracking(active_maze, START_CELL, active_maze_goal)
-        elif algo == "Backtracking + MRV":
-            self.generator = algorithms.backtracking_mrv(active_maze, START_CELL, active_maze_goal)
+        elif algo == "Backtracking + AC-3":
+            self.generator = algorithms.backtracking_ac3(active_maze, START_CELL, active_maze_goal)
         elif algo == "Backtracking + Forward Checking":
             self.generator = algorithms.backtracking_forward_checking(active_maze, START_CELL, active_maze_goal)
         elif algo == "Minimax":
@@ -330,11 +331,29 @@ class Application:
         else:
             self.visualizer_maze.grid = [row.copy() for row in active_maze]
         
+        # Calculate dynamic centering offsets based on group
+        if group == 3:  # Blind search
+            self.visualizer_maze.cell_size = 32
+            self.visualizer_maze.x_offset = 30
+            self.visualizer_maze.y_offset = 150
+        else:  # All other groups: center the maze
+            cols = len(active_maze[0])
+            rows = len(active_maze)
+            # Available display area: width 690 (from x=30 to 720), height 490 (from y=150 to 640)
+            max_cell_w = 690 // cols
+            max_cell_h = 490 // rows
+            cell_size = min(64, min(max_cell_w, max_cell_h))
+            
+            self.visualizer_maze.cell_size = cell_size
+            self.visualizer_maze.x_offset = 30 + (690 - cols * cell_size) // 2
+            self.visualizer_maze.y_offset = 150 + (490 - rows * cell_size) // 2
+        
     def step_simulation(self):
         """Execute one step of the generator."""
         if not self.generator:
             return False
             
+        self.has_run = True
         try:
             val = next(self.generator)
             
@@ -574,9 +593,7 @@ class Application:
             ]
         elif self.selected_group != 4:
             # Pathfinding Stats
-            status_text = "Đang chạy..." if self.is_running else ("Đã tìm thấy!" if self.found else "Tạm dừng/Chưa chạy")
-            if not self.is_running and not self.found and len(self.visited) > 1 and not self.frontier:
-                status_text = "Không tìm thấy!"
+            status_text = "Đang chạy..." if self.is_running else ("Đã tìm thấy!" if self.found else ("Không tìm thấy!" if self.has_run else "Tạm dừng/Chưa chạy"))
                 
             stats_list = [
                 f"Trạng thái: {status_text}",
@@ -586,18 +603,14 @@ class Application:
                 f"Tổng chi phí: {self.get_path_cost()}"
             ]
         else:
-            # CSP Stats
-            status_text = "Đang chạy..." if self.is_running else ("Đã giải xong!" if self.found else "Tạm dừng/Chưa chạy")
-            
-            from algorithms import get_reachable_cells
-            reachable = get_reachable_cells(self.visualizer_maze.grid, START_CELL)
-            total_dots = len(reachable)
-            
+            # Blocking CSP Stats
+            status_text = "Đang chạy..." if self.is_running else ("Đã chặn!" if self.found else ("Không thể chặn!" if self.has_run else "Tạm dừng/Chưa chạy"))
             stats_list = [
                 f"Trạng thái: {status_text}",
-                f"Số bước duyệt: {self.csp_steps}",
+                f"Số bước thử: {self.csp_steps}",
                 f"Số lần quay lui: {self.csp_backtracks}",
-                f"Số ma đã đặt: {len(self.path) if self.path else 0} / 5"
+                f"Số ma đã đặt: {len(self.path) if self.path else 0}",
+                f"Ô còn đi được: {len(self.visited)}"
             ]
             
         for line in stats_list:
@@ -643,7 +656,7 @@ class Application:
                             elif group == 3:
                                 names = ["Sensorless BFS", "Partial BFS", "AND-OR Search"]
                             elif group == 4:
-                                names = ["Simple Backtracking", "Backtracking + MRV", "Backtracking + Forward Checking"]
+                                names = ["Simple Backtracking", "Backtracking + AC-3", "Backtracking + Forward Checking"]
                             else: # group == 5
                                 names = ["Minimax", "Alpha-Beta Pruning", "Expectimax"]
                                 

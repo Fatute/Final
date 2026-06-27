@@ -58,11 +58,45 @@ DEFAULT_MAZE = [
     [2, 2, 2, 2, 2, 2, 2, 2]
 ]
 
-MAZE_0 = DEFAULT_MAZE
-MAZE_1 = DEFAULT_MAZE
-MAZE_2 = DEFAULT_MAZE
+MAZE_0 = [
+    [2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 1, 1, 1, 0, 1, 1, 2],
+    [2, 1, 2, 2, 2, 2, 1, 2],
+    [2, 1, 1, 0, 1, 1, 1, 2],
+    [2, 2, 2, 1, 2, 2, 0, 2],
+    [2, 1, 1, 1, 1, 0, 1, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2]
+]
+
+MAZE_1 = [
+    [2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 1, 0, 1, 1, 1, 1, 2],
+    [2, 1, 2, 2, 0, 2, 1, 2],
+    [2, 1, 1, 1, 1, 2, 1, 2],
+    [2, 2, 2, 0, 2, 2, 1, 2],
+    [2, 1, 1, 1, 1, 0, 1, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2]
+]
+
+MAZE_2 = [
+    [2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 1, 1, 1, 1, 2, 1, 2],
+    [2, 0, 2, 0, 2, 2, 1, 2],
+    [2, 0, 1, 0, 1, 1, 1, 2],
+    [2, 1, 2, 2, 0, 2, 0, 2],
+    [2, 1, 1, 1, 1, 1, 1, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2]
+]
 MAZE_3 = DEFAULT_MAZE
-MAZE_4 = DEFAULT_MAZE
+MAZE_4 = [
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 0, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 2],
+    [2, 1, 2, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2],
+    [2, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 2],
+    [2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+]
 MAZE_5 = [
     [2, 2, 2, 2, 2, 2, 2, 2],
     [2, 1, 1, 1, 1, 0, 1, 2],
@@ -83,16 +117,10 @@ def get_maze_goal(maze):
     """Return a copy of the maze with all food cells (1) set to 0."""
     return [[0 if cell == 1 else cell for cell in row] for row in maze]
 
-DEFAULT_MAZE_GOAL = get_maze_goal(DEFAULT_MAZE)
-MAZE_0_GOAL = get_maze_goal(MAZE_0)
-MAZE_1_GOAL = get_maze_goal(MAZE_1)
-MAZE_2_GOAL = get_maze_goal(MAZE_2)
-MAZE_3_GOAL = get_maze_goal(MAZE_3)
-MAZE_4_GOAL = get_maze_goal(MAZE_4)
-MAZE_5_GOAL = get_maze_goal(MAZE_5)
 
 # --- Path Rendering Configuration ---
 SHOW_PATH = False  # Set to True to enable path drawing
+
 
 # --- Algorithm Info Dictionary ---
 ALGO_INFO = {
@@ -145,16 +173,16 @@ ALGO_INFO = {
         "desc": "Tìm kiếm kế hoạch (contingent plan) trong môi trường không tất định. Pacman chọn một hướng nhưng môi trường có thể làm chệch hướng ngẫu nhiên."
     },
     "Simple Backtracking": {
-        "title": "Ghost Placement Backtracking",
-        "desc": "Quay lui cơ bản xếp 5 con ma. Tìm kiếm đệ quy đặt các con ma cách Pacman >= 5 ô, cách nhau >= 3 ô, và không chung hàng/cột."
+        "title": "Ghost Blocking: Simple Backtracking",
+        "desc": "Tìm tập nhỏ nhất các ghost để chặn TOÀN BỘ đường đi từ Pacman đến food. Ràng buộc: ghost không được đứng đúng ô spawn của Pacman. Thử tăng dần số ghost k=1,2,3... theo thứ tự cố định."
     },
-    "Backtracking + MRV": {
-        "title": "Ghost Placement Backtracking + MRV",
-        "desc": "Quay lui + MRV. Chọn các ô ứng viên bị ràng buộc nhiều nhất (có ít ô hàng, cột và ô lân cận an toàn hơn) đặt trước để tối ưu hóa không gian tìm kiếm."
+    "Backtracking + AC-3": {
+        "title": "Ghost Blocking: AC-3 (Arc Consistency)",
+        "desc": "Ghost Blocking kết hợp AC-3: trước mỗi bước thử, lọc domain còn lại chỉ giữ cell thực sự còn chặn được food, rồi enforce arc consistency Xi≠Xj — nếu domain nào co về 1 phần tử {v}, loại v khỏi domain các ghost khác. Domain rỗng → quay lui sớm."
     },
     "Backtracking + Forward Checking": {
-        "title": "Ghost Placement + Forward Checking",
-        "desc": "Quay lui + Kiểm tra trước. Dự đoán trước số lượng ô trống an toàn còn lại ở các hàng/cột tiếp theo, nếu không đủ chỗ cho số ma còn lại sẽ quay lui sớm."
+        "title": "Ghost Blocking: Forward Checking",
+        "desc": "Ghost Blocking kết hợp kiểm tra trước: sau mỗi lần đặt ghost, kiểm tra xem các vị trí ứng viên còn lại có đủ khả năng chặn nốt food chưa bị chặn không. Nếu không → quay lui sớm, tránh lãng phí."
     },
     "Minimax": {
         "title": "Minimax Adversarial Search",
