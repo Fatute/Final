@@ -17,7 +17,7 @@ from .local import (
 from .blind import (
     sensorless_bfs as sensorless_bfs_standard,
     partial_bfs as partial_bfs_standard,
-    bidirectional_search as bidirectional_search_standard
+    and_or_search as and_or_search_standard
 )
 from .csp import (
     simple_backtracking as simple_backtracking_standard,
@@ -222,6 +222,45 @@ def make_partial_visualizer(algo_func):
             
     return visualizer
 
+# --- AND-OR Helper Visualizer ---
+def make_and_or_visualizer(algo_func):
+    def visualizer(grid, start, goal, *args, **kwargs):
+        import random
+        policy = algo_func(grid, start, goal, *args, **kwargs)
+        action_map = {'U': (-1, 0), 'D': (1, 0), 'L': (0, -1), 'R': (0, 1)}
+        
+        r, c = start
+        path = [(r, c)]
+        
+        yield set(), [], (r, c), list(path), False
+        
+        steps = 0
+        while (r, c) != goal and steps < 150:
+            action = policy.get((r, c), 'U')
+            
+            valid_nbs = []
+            for a, (dr, dc) in action_map.items():
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                    valid_nbs.append((nr, nc))
+                    
+            if valid_nbs:
+                if random.random() < 0.4: # 40% chance to slip to a random neighbor
+                    r, c = random.choice(valid_nbs)
+                else:
+                    dr, dc = action_map.get(action, (0, 0))
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                        r, c = nr, nc
+            
+            path.append((r, c))
+            steps += 1
+            yield set(path), [], (r, c), list(path), False
+            
+        yield set(path), [], (r, c), list(path), True
+        
+    return visualizer
+
 # --- Instantiate Visualizers ---
 bfs = make_path_visualizer(bfs_standard)
 dfs = make_path_visualizer(dfs_standard)
@@ -237,7 +276,7 @@ beam_search = make_path_visualizer(beam_search_standard)
 
 sensorless_bfs = make_sensorless_visualizer(sensorless_bfs_standard)
 partial_bfs = make_partial_visualizer(partial_bfs_standard)
-bidirectional_search = make_path_visualizer(bidirectional_search_standard)
+and_or_search = make_and_or_visualizer(and_or_search_standard)
 
 simple_backtracking = make_csp_visualizer(simple_backtracking_standard)
 backtracking_mrv = make_csp_visualizer(backtracking_mrv_standard)

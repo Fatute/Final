@@ -180,8 +180,8 @@ class Application:
             desc = "Các giải thuật tối ưu hóa cục bộ. Chúng không lưu vết cây tìm kiếm mà chỉ cập nhật trạng thái hiện tại dựa trên hàng xóm. Phù hợp cho không gian trạng thái cực lớn."
             card_color = COLOR_CYAN
         elif group_index == 3:
-            algos = ["Sensorless BFS", "Partial BFS", "Bidirectional BFS"]
-            desc = "Dạng thuật toán tìm kiếm mù (uninformed). Sensorless BFS lập kế hoạch để các trạng thái niềm tin cùng đi tới đích; Partial BFS giải quyết khi chỉ biết 1 phần bản đồ; Bidirectional tìm đồng thời từ 2 phía."
+            algos = ["Sensorless BFS", "Partial BFS", "AND-OR Search"]
+            desc = "Dạng thuật toán tìm kiếm mù (uninformed). Sensorless BFS lập kế hoạch để các trạng thái niềm tin cùng đi tới đích; Partial BFS giải quyết khi chỉ biết 1 phần bản đồ; AND-OR Search dò tìm trong môi trường không tất định."
             card_color = COLOR_ORANGE
         elif group_index == 4:
             algos = ["Simple Backtracking", "Backtracking + MRV", "Backtracking + Forward Checking"]
@@ -307,8 +307,11 @@ class Application:
                         self.unknown_mask.add((r, c))
                         
             self.generator = algorithms.partial_bfs(grid_1, grid_2, START_CELL, (5, 7))
-        elif algo == "Bidirectional BFS":
-            self.generator = algorithms.bidirectional_search(active_maze, START_CELL, active_maze_goal)
+        elif algo == "AND-OR Search":
+            grid_1 = [row.copy() for row in active_maze_goal]
+            grid_1[5][7] = 0 # Open exit
+            self.grid_1 = grid_1
+            self.generator = algorithms.and_or_search(grid_1, START_CELL, (5, 7))
         elif algo == "Simple Backtracking":
             self.generator = algorithms.simple_backtracking(active_maze, START_CELL, active_maze_goal)
         elif algo == "Backtracking + MRV":
@@ -322,7 +325,7 @@ class Application:
         elif algo == "Expectimax":
             self.generator = algorithms.expectimax_search(active_maze, START_CELL, active_maze_goal)
             
-        if algo in ["Sensorless BFS", "Partial BFS"]:
+        if algo in ["Sensorless BFS", "Partial BFS", "AND-OR Search"]:
             self.visualizer_maze.grid = self.grid_1
         else:
             self.visualizer_maze.grid = [row.copy() for row in active_maze]
@@ -638,7 +641,7 @@ class Application:
                             elif group == 2:
                                 names = ["Hill Climbing", "Beam Search", "Simulated Annealing"]
                             elif group == 3:
-                                names = ["Sensorless BFS", "Partial BFS", "Bidirectional BFS"]
+                                names = ["Sensorless BFS", "Partial BFS", "AND-OR Search"]
                             elif group == 4:
                                 names = ["Simple Backtracking", "Backtracking + MRV", "Backtracking + Forward Checking"]
                             else: # group == 5

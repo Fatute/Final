@@ -140,9 +140,9 @@ ALGO_INFO = {
         "title": "Partial BFS (Unknown Map)",
         "desc": "Tìm kiếm khi chỉ biết một phần bản đồ. Lập kế hoạch sao cho dù cấu trúc phần chưa biết (bóng tối) có ra sao, Pacman vẫn đến đích."
     },
-    "Bidirectional BFS": {
-        "title": "Bidirectional Search",
-        "desc": "Tìm kiếm hai chiều. Chạy hai luồng BFS đồng thời từ Start và từ Goal. Khi hai đường biên gặp nhau, ta ghép đường đi. Giảm lũy thừa không gian tìm kiếm."
+    "AND-OR Search": {
+        "title": "AND-OR Search",
+        "desc": "Tìm kiếm kế hoạch (contingent plan) trong môi trường không tất định. Pacman chọn một hướng nhưng môi trường có thể làm chệch hướng ngẫu nhiên."
     },
     "Simple Backtracking": {
         "title": "Ghost Placement Backtracking",

@@ -89,5 +89,65 @@ def partial_bfs(grid_1, grid_2, start, goal):
                 
     return []
 
-def bidirectional_search(grid, start, goal):
-    return []
+def and_or_search(grid, start, goal, max_depth=15):
+    rows = len(grid)
+    cols = len(grid[0]) if rows > 0 else 0
+    action_map = {'U': (-1, 0), 'D': (1, 0), 'L': (0, -1), 'R': (0, 1)}
+    
+    def get_valid_neighbors(r, c):
+        nbs = {}
+        for a, (dr, dc) in action_map.items():
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != 2:
+                nbs[a] = (nr, nc)
+        return nbs
+
+    policy = {}
+    
+    def or_search(state, path, depth):
+        if state == goal:
+            return True
+        if state in path:
+            return False
+        if depth <= 0:
+            return False
+            
+        nbs = get_valid_neighbors(state[0], state[1])
+        if not nbs:
+            return False
+            
+        for action, intended_state in nbs.items():
+            outcomes = list(nbs.values())
+            plan = and_search(outcomes, path + [state], depth - 1)
+            if plan:
+                policy[state] = action
+                return True
+        return False
+
+    def and_search(states, path, depth):
+        for state in states:
+            plan_i = or_search(state, path, depth)
+            if not plan_i:
+                return False
+        return True
+
+    # 1. Gọi and_or_search chính (gồm or_search và and_search)
+    or_search(start, [], max_depth)
+    
+    # 2. Fallback to BFS to guarantee a robust heuristic policy for all states
+    from collections import deque
+    q = deque([(goal[0], goal[1])])
+    visited = {goal: 0}
+    
+    while q:
+        curr = q.popleft()
+        for a, (dr, dc) in action_map.items():
+            nr, nc = curr[0] - dr, curr[1] - dc
+            if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != 2:
+                if (nr, nc) not in visited:
+                    visited[(nr, nc)] = visited[curr] + 1
+                    q.append((nr, nc))
+                    if (nr, nc) not in policy:
+                        policy[(nr, nc)] = a
+                        
+    return policy
