@@ -596,12 +596,23 @@ class Application:
             status_text = "Đang chạy..." if self.is_running else ("Đã kết thúc!" if self.found else "Tạm dừng/Chưa chạy")
             exec_time_str = f"{self.exec_time:.4f}s" if hasattr(self, 'exec_time') else "0.0000s"
             stats_list = [
-                f"Trạng thái: {status_text}",
+                f"Trạng thái: {status_text}"
+            ]
+            if self.found:
+                if self.p1_score > self.p2_score:
+                    winner_str = "Pacman 1 Thắng!"
+                elif self.p2_score > self.p1_score:
+                    winner_str = "Pacman 2 Thắng!"
+                else:
+                    winner_str = "Hòa!"
+                stats_list.append(f"Kết quả: {winner_str}")
+            
+            stats_list.extend([
                 f"Đã duyệt (Visited): {len(self.visited)}",
                 f"Pacman 1 ăn: {self.p1_score}",
                 f"Pacman 2 ăn: {self.p2_score}",
                 f"Thời gian: {exec_time_str}"
-            ]
+            ])
         elif self.selected_group != 4:
             # Pathfinding Stats
             status_text = "Đang chạy..." if self.is_running else ("Đã tìm thấy!" if self.found else ("Không tìm thấy!" if self.has_run else "Tạm dừng/Chưa chạy"))
@@ -625,7 +636,12 @@ class Application:
             ]
             
         for line in stats_list:
-            lbl = self.stats_font.render(line, True, COLOR_MUTED if "Trạng thái" not in line else COLOR_TEXT)
+            color = COLOR_MUTED
+            if "Trạng thái" in line:
+                color = COLOR_TEXT
+            elif "Kết quả" in line:
+                color = COLOR_YELLOW
+            lbl = self.stats_font.render(line, True, color)
             screen.blit(lbl, (750 + 20, y_offset))
             y_offset += 25
             

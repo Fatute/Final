@@ -86,7 +86,7 @@ def make_weight_csp_visualizer(csp_func):
 # --- Adversarial Helper Visualizer ---
 def make_adversarial_visualizer(adversarial_func):
     def visualizer(grid, start, goal, *args, **kwargs):
-        from .adversarial import get_reachable_cells, GOAL_CELL
+        from .adversarial import get_reachable_cells, GOAL_CELL, get_center_score
         reachable = get_reachable_cells(grid, start)
         initial_food = frozenset(
             (r, c) for r, c in reachable if grid[r][c] == 1
@@ -106,19 +106,22 @@ def make_adversarial_visualizer(adversarial_func):
         # Yield initial state
         yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), False, pacman1_score, pacman2_score, exec_time)
         
+        rows = len(grid)
+        cols = len(grid[0])
+        
         for idx, move in enumerate(best_path):
             if idx % 2 == 0:
                 pacman1_pos = move
                 path_so_far.append(pacman1_pos)
                 if pacman1_pos in food_set:
                     food_set = food_set - {pacman1_pos}
-                    pacman1_score += 1
+                    pacman1_score += get_center_score(pacman1_pos[0], pacman1_pos[1], rows, cols)
             else:
                 pacman2_pos = move
                 path_so_far2.append(pacman2_pos)
                 if pacman2_pos in food_set:
                     food_set = food_set - {pacman2_pos}
-                    pacman2_score += 1
+                    pacman2_score += get_center_score(pacman2_pos[0], pacman2_pos[1], rows, cols)
                     
             is_last = (idx == len(best_path) - 1) or not food_set
             yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), is_last, pacman1_score, pacman2_score, exec_time)

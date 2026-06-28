@@ -53,19 +53,22 @@ def minimax(board, grid, d, visited_p1, visited_p2):
         return utility(board), []
 
     turn = current_player(board)
+    blanks = find_blank(board, grid)
     if turn == 'X':
+        unvisited = [m for m in blanks if m not in visited_p1]
+        moves_to_explore = unvisited if unvisited else blanks
         value, best_path = -float('inf'), []
-        for move in find_blank(board, grid):
+        for move in moves_to_explore:
             score, path = minimax(result(board, move[0], move[1], 'X'), grid, d - 1, visited_p1, visited_p2)
-            if move in visited_p1: score -= 100
             if score > value:
                 value, best_path = score, [move] + path
         return value, best_path
     else:
+        unvisited = [m for m in blanks if m not in visited_p2]
+        moves_to_explore = unvisited if unvisited else blanks
         value, best_path = float('inf'), []
-        for move in find_blank(board, grid):
+        for move in moves_to_explore:
             score, path = minimax(result(board, move[0], move[1], 'O'), grid, d - 1, visited_p1, visited_p2)
-            if move in visited_p2: score += 100
             if score < value:
                 value, best_path = score, [move] + path
         return value, best_path
@@ -76,11 +79,13 @@ def alphabeta(board, grid, alpha, beta, d, visited_p1, visited_p2):
         return utility(board), []
 
     turn = current_player(board)
+    blanks = find_blank(board, grid)
     if turn == 'X':
+        unvisited = [m for m in blanks if m not in visited_p1]
+        moves_to_explore = unvisited if unvisited else blanks
         value, best_path = -float('inf'), []
-        for move in find_blank(board, grid):
+        for move in moves_to_explore:
             score, path = alphabeta(result(board, move[0], move[1], 'X'), grid, alpha, beta, d - 1, visited_p1, visited_p2)
-            if move in visited_p1: score -= 100
             if score > value:
                 value, best_path = score, [move] + path
             alpha = max(alpha, value)
@@ -88,10 +93,11 @@ def alphabeta(board, grid, alpha, beta, d, visited_p1, visited_p2):
                 break
         return value, best_path
     else:
+        unvisited = [m for m in blanks if m not in visited_p2]
+        moves_to_explore = unvisited if unvisited else blanks
         value, best_path = float('inf'), []
-        for move in find_blank(board, grid):
+        for move in moves_to_explore:
             score, path = alphabeta(result(board, move[0], move[1], 'O'), grid, alpha, beta, d - 1, visited_p1, visited_p2)
-            if move in visited_p2: score += 100
             if score < value:
                 value, best_path = score, [move] + path
             beta = min(beta, value)
@@ -105,23 +111,25 @@ def expectimax(board, grid, d, visited_p1, visited_p2):
         return utility(board), []
 
     turn = current_player(board)
+    blanks = find_blank(board, grid)
     if turn == 'X':
+        unvisited = [m for m in blanks if m not in visited_p1]
+        moves_to_explore = unvisited if unvisited else blanks
         value, best_path = -float('inf'), []
-        for move in find_blank(board, grid):
+        for move in moves_to_explore:
             score, path = expectimax(result(board, move[0], move[1], 'X'), grid, d - 1, visited_p1, visited_p2)
-            if move in visited_p1: score -= 100
             if score > value:
                 value, best_path = score, [move] + path
         return value, best_path
     else:
-        blanks = find_blank(board, grid)
         if not blanks:
             return utility(board), []
-        rate = 1 / len(blanks)
+        unvisited = [m for m in blanks if m not in visited_p2]
+        moves_to_explore = unvisited if unvisited else blanks
+        rate = 1 / len(moves_to_explore)
         value = sum(
-            rate * (expectimax(result(board, m[0], m[1], 'O'), grid, d - 1, visited_p1, visited_p2)[0]
-                    + (100 if m in visited_p2 else 0))
-            for m in blanks
+            rate * (expectimax(result(board, m[0], m[1], 'O'), grid, d - 1, visited_p1, visited_p2)[0])
+            for m in moves_to_explore
         )
         return value, []
 
@@ -146,7 +154,11 @@ def _run_game_loop(grid, start, search_fn, label):
         prev_food = len(board[2])
         turn = current_player(board)
 
-        _, path = search_fn(board, grid, visited_p1, visited_p2)
+        val, path = search_fn(board, grid, visited_p1, visited_p2)
+        if turn == 'X':
+            outcome_str = "Thang" if val > 0 else ("Thua" if val < 0 else "Hoa")
+            print(f"Buoc {step} - Luot Pacman 1: Gia tri toi uu du doan = {val} ({outcome_str})")
+        
         move = path[0] if path else None
         if not move:
             break
@@ -170,6 +182,9 @@ def _run_game_loop(grid, start, search_fn, label):
     p1_path = [best_path[i] for i in range(0, len(best_path), 2)]
     print(f"Execution Time: {execution_time:.4f} seconds")
     print(f"Final Score -> Pacman 1: {board[3]}, Pacman 2: {board[4]}")
+    final_val = utility(board)
+    outcome_str = "Thang" if final_val > 0 else ("Thua" if final_val < 0 else "Hoa")
+    print(f"Ket qua chung cuoc cua Pacman 1: {final_val} ({outcome_str})")
     print(f"Best Path of Pacman 1: {p1_path}")
     return best_path, execution_time
 
