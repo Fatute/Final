@@ -93,7 +93,7 @@ def make_adversarial_visualizer(adversarial_func):
         )
         
         # Run standard adversarial search to get the path
-        best_path = adversarial_func(grid, start, goal, *args, **kwargs)
+        best_path, exec_time = adversarial_func(grid, start, goal, *args, **kwargs)
         
         pacman1_pos = start
         pacman2_pos = GOAL_CELL
@@ -104,7 +104,7 @@ def make_adversarial_visualizer(adversarial_func):
         path_so_far2 = [pacman2_pos]
         
         # Yield initial state
-        yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), False, pacman1_score, pacman2_score)
+        yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), False, pacman1_score, pacman2_score, exec_time)
         
         for idx, move in enumerate(best_path):
             if idx % 2 == 0:
@@ -121,7 +121,7 @@ def make_adversarial_visualizer(adversarial_func):
                     pacman2_score += 1
                     
             is_last = (idx == len(best_path) - 1) or not food_set
-            yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), is_last, pacman1_score, pacman2_score)
+            yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), is_last, pacman1_score, pacman2_score, exec_time)
             if not food_set:
                 break
     return visualizer

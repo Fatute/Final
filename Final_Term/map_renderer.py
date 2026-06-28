@@ -220,7 +220,7 @@ class MazeVisualizer:
                     pygame.draw.rect(screen, (10, 15, 30), (cell_x, cell_y, self.cell_size, self.cell_size))
                     
                     # Pac-dot in the center (only draw if it is food (1) and not special/covered)
-                    is_special_cell = (r, c) == START_CELL or (is_adversarial and (r, c) == GOAL_CELL) or (is_csp and (r, c) in placed_pacmans)
+                    is_special_cell = (r, c) == START_CELL or (is_csp and (r, c) in placed_pacmans)
                     is_covered = False
                     if val == 1 and not is_special_cell and not is_covered:
                         if is_weight_csp:
@@ -228,7 +228,13 @@ class MazeVisualizer:
                             score = _get_coin_score(r, c)
                             font = get_best_font(FONT_FAMILIES, 12, bold=True)
                             score_lbl = font.render(str(score), True, (255, 200, 100))
-                            screen.blit(score_lbl, (cell_x + self.cell_size//2 - score_lbl.get_width()//2, cell_y + self.cell_size//2 - score_lbl.get_height()//2))
+                            screen.blit(score_lbl, score_lbl.get_rect(center=(cell_x + self.cell_size//2, cell_y + self.cell_size//2)))
+                        elif is_adversarial:
+                            from algorithms.adversarial import get_center_score
+                            score = get_center_score(r, c)
+                            font = get_best_font(FONT_FAMILIES, 12, bold=True)
+                            score_lbl = font.render(str(score), True, (255, 100, 200)) # Pinkish color for adversarial
+                            screen.blit(score_lbl, score_lbl.get_rect(center=(cell_x + self.cell_size//2, cell_y + self.cell_size//2)))
                         else:
                             pygame.draw.circle(screen, (248, 187, 208), (cell_x + self.cell_size // 2, cell_y + self.cell_size // 2), 3)
                         

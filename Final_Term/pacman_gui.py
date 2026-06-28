@@ -237,6 +237,7 @@ class Application:
         self.p2_score = 0
         self.path_b1 = None
         self.path_b2 = None
+        self.exec_time = 0.0
         
         # Get active maze based on selected group
         from config import MAZE_0, MAZE_1, MAZE_2, MAZE_3, MAZE_4, MAZE_5, DEFAULT_MAZE
@@ -368,7 +369,7 @@ class Application:
             if self.selected_algo in ["Sensorless BFS", "Partial BFS"]:
                 self.visited, self.frontier, self.current_node, self.path, self.found, self.path_b1, self.path_b2 = val
             elif self.selected_group == 5:
-                self.visited, self.frontier, self.current_node, self.path, self.found, self.p1_score, self.p2_score = val
+                self.visited, self.frontier, self.current_node, self.path, self.found, self.p1_score, self.p2_score, self.exec_time = val
             elif self.selected_group == 4:
                 self.visited, self.frontier, self.current_node, self.path, self.found, self.csp_action = val
             else:
@@ -593,16 +594,18 @@ class Application:
         if self.selected_group == 5:
             # Adversarial Stats
             status_text = "Đang chạy..." if self.is_running else ("Đã kết thúc!" if self.found else "Tạm dừng/Chưa chạy")
+            exec_time_str = f"{self.exec_time:.4f}s" if hasattr(self, 'exec_time') else "0.0000s"
             stats_list = [
                 f"Trạng thái: {status_text}",
                 f"Đã duyệt (Visited): {len(self.visited)}",
                 f"Pacman 1 ăn: {self.p1_score}",
-                f"Pacman 2 ăn: {self.p2_score}"
+                f"Pacman 2 ăn: {self.p2_score}",
+                f"Thời gian: {exec_time_str}"
             ]
         elif self.selected_group != 4:
             # Pathfinding Stats
             status_text = "Đang chạy..." if self.is_running else ("Đã tìm thấy!" if self.found else ("Không tìm thấy!" if self.has_run else "Tạm dừng/Chưa chạy"))
-                
+            exec_time_str = f"{self.exec_time:.4f}s" if hasattr(self, 'exec_time') else "0.0000s"
             stats_list = [
                 f"Trạng thái: {status_text}",
                 f"Đã duyệt (Visited): {len(self.visited)}",
