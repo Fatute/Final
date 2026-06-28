@@ -16,7 +16,10 @@ def get_center_score(r, c, rows=7, cols=8):
 
 def find_blank(board, grid):
     p1, p2, f_set, s1, s2, turn = board
-    return moves(grid, p1) if turn == 'X' else moves(grid, p2)
+    if turn == 'X':
+        return [m for m in moves(grid, p1) if m != p2]
+    else:
+        return [m for m in moves(grid, p2) if m != p1]
 
 def check_winner(board):
     p1, p2, f_set, s1, s2, turn = board
