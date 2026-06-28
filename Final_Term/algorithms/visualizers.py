@@ -46,14 +46,11 @@ def make_path_visualizer(algo_func):
                 path_so_far = full_path[:i+1]
                 visited_so_far = set(path_so_far)
                 current_node = full_path[i]
-                is_last_step = (i == len(full_path) - 1)
-                
-                if is_last_step:
-                    is_found = all_food.issubset(visited_so_far)
-                else:
-                    is_found = False
-                    
+                is_found = all_food.issubset(visited_so_far)
                 yield visited_so_far, [], current_node, path_so_far, is_found
+                
+                if is_found:
+                    break
         else:
             yield set(), [], start, None, False
     return visualizer
@@ -229,7 +226,7 @@ def make_and_or_visualizer(algo_func):
         r, c = start
         path = [(r, c)]
         
-        yield set(), [], (r, c), list(path), False
+        yield set(), [], (r, c), policy, False
         
         steps = 0
         while (r, c) != goal and steps < 150:
@@ -252,9 +249,9 @@ def make_and_or_visualizer(algo_func):
             
             path.append((r, c))
             steps += 1
-            yield set(path), [], (r, c), list(path), False
+            yield set(path), [], (r, c), policy, False
             
-        yield set(path), [], (r, c), list(path), True
+        yield set(path), [], (r, c), policy, True
         
     return visualizer
 

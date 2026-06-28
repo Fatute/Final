@@ -135,6 +135,44 @@ def draw_ghost(screen, x, y, size, color):
     pygame.draw.circle(screen, (33, 150, 243), (x + r // 2.0, y - r // 4), 2)
 
 
+def draw_arrow(screen, cell_x, cell_y, cell_size, direction, color=(255, 235, 59)):
+    """Draw a directional arrow inside a cell."""
+    cx = cell_x + cell_size // 2
+    cy = cell_y + cell_size // 2
+    
+    arrow_len = cell_size * 0.3
+    head_len = cell_size * 0.15
+    head_wid = cell_size * 0.15
+    
+    if direction == 'U':
+        p1 = (cx, cy + arrow_len)
+        p2 = (cx, cy - arrow_len)
+        p3 = (cx - head_wid, cy - arrow_len + head_len)
+        p4 = (cx + head_wid, cy - arrow_len + head_len)
+    elif direction == 'D':
+        p1 = (cx, cy - arrow_len)
+        p2 = (cx, cy + arrow_len)
+        p3 = (cx - head_wid, cy + arrow_len - head_len)
+        p4 = (cx + head_wid, cy + arrow_len - head_len)
+    elif direction == 'L':
+        p1 = (cx + arrow_len, cy)
+        p2 = (cx - arrow_len, cy)
+        p3 = (cx - arrow_len + head_len, cy - head_wid)
+        p4 = (cx - arrow_len + head_len, cy + head_wid)
+    elif direction == 'R':
+        p1 = (cx - arrow_len, cy)
+        p2 = (cx + arrow_len, cy)
+        p3 = (cx + arrow_len - head_len, cy - head_wid)
+        p4 = (cx + arrow_len - head_len, cy + head_wid)
+    else:
+        return
+        
+    # Draw line and head
+    thickness = max(2, int(cell_size * 0.08))
+    pygame.draw.line(screen, color, p1, p2, thickness)
+    pygame.draw.polygon(screen, color, [p2, p3, p4])
+
+
 # --- Maze Renderer Class ---
 
 class MazeVisualizer:
@@ -251,8 +289,15 @@ class MazeVisualizer:
                 curr_y = self.y_offset + current[0] * self.cell_size
                 pygame.draw.rect(screen, (0, 230, 118), (curr_x + 1, curr_y + 1, self.cell_size - 2, self.cell_size - 2), 2)
                 
-            # Reconstructed Path drawing
-            draw_path(screen, path, self.cell_size, self.x_offset, self.y_offset)
+            # Reconstructed Path drawing or Policy Arrows
+            if isinstance(path, dict):
+                for (r, c), action in path.items():
+                    if (r, c) != GOAL_CELL and self.grid[r][c] != 2:
+                        cell_x = self.x_offset + c * self.cell_size
+                        cell_y = self.y_offset + r * self.cell_size
+                        draw_arrow(screen, cell_x, cell_y, self.cell_size, action, (255, 235, 59))
+            else:
+                draw_path(screen, path, self.cell_size, self.x_offset, self.y_offset)
                 
             # Draw Start (Pacman)
             pacman_cell = current if current else START_CELL

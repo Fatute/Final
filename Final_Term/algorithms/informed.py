@@ -12,7 +12,8 @@ def get_path_to(node):
 
 # --- 1. Greedy Best-First Search ---
 def greedy_best_first(grid, start, goal):
-    total_food = len(get_reachable_cells(grid, start))
+    reachable = get_reachable_cells(grid, start)
+    total_food = sum(1 for r, c in reachable if grid[r][c] == 1)
     
     start_node = Node(start, g=0, h=total_food)
     frontier = [start_node]
@@ -28,7 +29,8 @@ def greedy_best_first(grid, start, goal):
         reached_set.add(curr.state)
         reached_order.append(curr.state)
         
-        if len(reached_set) == total_food:
+        visited_foods = sum(1 for r, c in reached_set if grid[r][c] == 1)
+        if visited_foods == total_food:
             full_path = []
             curr_pos = start
             for target in reached_order:
@@ -60,7 +62,8 @@ def greedy_best_first(grid, start, goal):
 
 # --- 2. A* Search ---
 def a_star(grid, start, goal):
-    total_food = len(get_reachable_cells(grid, start))
+    reachable = get_reachable_cells(grid, start)
+    total_food = sum(1 for r, c in reachable if grid[r][c] == 1)
     
     start_node = Node(start, g=0, h=total_food)
     frontier = [start_node]
@@ -76,7 +79,8 @@ def a_star(grid, start, goal):
         reached_set.add(curr.state)
         reached_order.append(curr.state)
         
-        if len(reached_set) == total_food:
+        visited_foods = sum(1 for r, c in reached_set if grid[r][c] == 1)
+        if visited_foods == total_food:
             full_path = []
             curr_pos = start
             for target in reached_order:
@@ -124,7 +128,8 @@ def search_with_threshold(grid, start, total_food, threshold, reached_set, reach
             reached_set.add(curr.state)
             reached_order.append(curr.state)
             
-        if len(reached_set) == total_food:
+        visited_foods = sum(1 for r, c in reached_set if grid[r][c] == 1)
+        if visited_foods == total_food:
             return curr, threshold
             
         for next_pos in moves(grid, curr.state):
@@ -146,7 +151,8 @@ def search_with_threshold(grid, start, total_food, threshold, reached_set, reach
 
 # --- 4. IDA* Search ---
 def ida_star(grid, start, goal):
-    total_food = len(get_reachable_cells(grid, start))
+    reachable = get_reachable_cells(grid, start)
+    total_food = sum(1 for r, c in reachable if grid[r][c] == 1)
     threshold = total_food
     
     while True:

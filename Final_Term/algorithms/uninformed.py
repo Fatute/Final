@@ -66,7 +66,8 @@ def bfs(grid, start, goal):
     reached_set = set()
     reached_order = []
     
-    total_food = len(get_reachable_cells(grid, start))
+    reachable = get_reachable_cells(grid, start)
+    total_food = sum(1 for r, c in reachable if grid[r][c] == 1)
     
     while len(frontier) != 0:
         node = frontier.pop(0)
@@ -76,7 +77,8 @@ def bfs(grid, start, goal):
         reached_set.add(node.state)
         reached_order.append(node.state)
         
-        if len(reached_set) == total_food:
+        visited_foods = sum(1 for r, c in reached_set if grid[r][c] == 1)
+        if visited_foods == total_food:
             full_path = []
             curr = start
             for target in reached_order:
@@ -104,7 +106,8 @@ def dfs(grid, start, goal):
     reached_set = set()
     reached_order = []
     
-    total_food = len(get_reachable_cells(grid, start))
+    reachable = get_reachable_cells(grid, start)
+    total_food = sum(1 for r, c in reachable if grid[r][c] == 1)
     
     while len(frontier) != 0:
         node = frontier.pop()
@@ -114,7 +117,8 @@ def dfs(grid, start, goal):
         reached_set.add(node.state)
         reached_order.append(node.state)
         
-        if len(reached_set) == total_food:
+        visited_foods = sum(1 for r, c in reached_set if grid[r][c] == 1)
+        if visited_foods == total_food:
             full_path = []
             curr = start
             for target in reached_order:
@@ -137,7 +141,8 @@ def dfs(grid, start, goal):
 
 #UCS
 def ucs(grid, start, goal):
-    total_food = len(get_reachable_cells(grid, start))
+    reachable = get_reachable_cells(grid, start)
+    total_food = sum(1 for r, c in reachable if grid[r][c] == 1)
     node = Node(start, g=0)
     frontier = [node]
     reached_set = set()
@@ -152,7 +157,8 @@ def ucs(grid, start, goal):
         reached_set.add(node.state)
         reached_order.append(node.state)
 
-        if len(reached_set) == total_food:
+        visited_foods = sum(1 for r, c in reached_set if grid[r][c] == 1)
+        if visited_foods == total_food:
             full_path = []
             curr = start
             for target in reached_order:

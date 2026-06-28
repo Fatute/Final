@@ -331,8 +331,8 @@ class Application:
         else:
             self.visualizer_maze.grid = [row.copy() for row in active_maze]
         
-        # Calculate dynamic centering offsets based on group
-        if group == 3:  # Blind search
+        # Calculate dynamic centering offsets based on algorithm
+        if algo in ["Sensorless BFS", "Partial BFS"]:  # Multiple maps
             self.visualizer_maze.cell_size = 32
             self.visualizer_maze.x_offset = 30
             self.visualizer_maze.y_offset = 150
