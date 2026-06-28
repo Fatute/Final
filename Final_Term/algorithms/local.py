@@ -58,6 +58,8 @@ def beam_search(grid, start, goal, k=2):
     beam = [start_node]
     visited = {start}
     best_node_so_far = start_node
+    best_h = start_node.h
+    no_improve_count = 0
     
     found_node = None
     level = 0
@@ -102,6 +104,17 @@ def beam_search(grid, start, goal, k=2):
             visited.add(node.state)
             if node.h < best_node_so_far.h:
                 best_node_so_far = node
+                
+        # Check if the best h in the new beam improved
+        new_best_h = min(node.h for node in beam)
+        if new_best_h < best_h:
+            best_h = new_best_h
+            no_improve_count = 0
+        else:
+            no_improve_count += 1
+            
+        if no_improve_count >= 10:
+            break
             
     if found_node:
         return solution(found_node)
