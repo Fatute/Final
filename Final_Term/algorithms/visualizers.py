@@ -20,11 +20,6 @@ from .blind import (
     and_or_search as and_or_search_standard,
     bidirectional_search as bidirectional_search_standard
 )
-from .csp import (
-    simple_backtracking as simple_backtracking_standard,
-    backtracking_ac3 as backtracking_ac3_standard,
-    backtracking_forward_checking as backtracking_forward_checking_standard
-)
 from .adversarial import (
     minimax_search as minimax_search_standard,
     alphabeta_search as alphabeta_search_standard,
@@ -55,44 +50,37 @@ def make_path_visualizer(algo_func):
             yield set(), [], start, None, False
     return visualizer
 
-# --- Blocking CSP Visualizer ---
-def make_blocking_csp_visualizer(csp_func):
+# --- Weight-Constrained Path CSP Visualizer ---
+def make_weight_csp_visualizer(csp_func):
     def visualizer(grid, start, goal, *args, **kwargs):
-        from .csp import get_reachable_cells
-        full_reachable = get_reachable_cells(grid, start)
+        # We need max_score, get it from config if not passed
+        import config
+        max_score = config.MAX_SCORE
+        
+        solution, steps = csp_func(grid, start, goal, max_score, *args, **kwargs)
 
-        solution, steps = csp_func(grid, start, goal, *args, **kwargs)
-
-        # Initial state: show full reachable area, no ghosts
-        yield full_reachable, [], start, [], False
+        # Initial state
+        yield set(), [], start, [], False, 'init'
 
         yielded_any = False
         for step in steps:
             stype = step[0]
             if stype == 'try':
-                _, current, placed, reachable = step
-                yield reachable, [], current, placed, False
+                _, current, path, score, domain = step
+                yield set(path), domain, current, path, False, stype
                 yielded_any = True
             elif stype == 'backtrack':
-                _, removed, placed, reachable = step
-                curr = placed[-1] if placed else start
-                yield reachable, [], curr, placed, False
+                _, current, path, score, domain = step
+                yield set(path), domain, current, path, False, stype
                 yielded_any = True
             elif stype == 'found':
-                _, placed = step
-                # Show remaining reachable area (goal is now blocked off)
-                from .csp import _bfs_reachable
-                final_reach = _bfs_reachable(grid, start, frozenset(placed))
-                yield final_reach, [], placed[-1] if placed else start, placed, True
+                _, path = step
+                yield set(path), [], path[-1], path, True, stype
                 yielded_any = True
 
-        # Always yield a final state so the GUI doesn't hang on StopIteration
         if not solution:
-            # No solution found — yield a clear "failed" state
-            yield full_reachable, [], start, [], False
-        elif not yielded_any:
-            # Solution found but no intermediate steps recorded (shouldn't happen normally)
-            yield set(), [], start, solution, True
+            yield set(), [], start, [], True, 'not_found'
+
     return visualizer
 
 # --- Adversarial Helper Visualizer ---
@@ -273,9 +261,10 @@ partial_bfs = make_partial_visualizer(partial_bfs_standard)
 and_or_search = make_and_or_visualizer(and_or_search_standard)
 bidirectional_search = make_path_visualizer(bidirectional_search_standard)
 
-simple_backtracking = make_blocking_csp_visualizer(simple_backtracking_standard)
-backtracking_ac3 = make_blocking_csp_visualizer(backtracking_ac3_standard)
-backtracking_forward_checking = make_blocking_csp_visualizer(backtracking_forward_checking_standard)
+from .csp import weight_constrained_simple, weight_constrained_forward, weight_constrained_ac3
+weight_constrained_simple = make_weight_csp_visualizer(weight_constrained_simple)
+weight_constrained_forward = make_weight_csp_visualizer(weight_constrained_forward)
+weight_constrained_ac3 = make_weight_csp_visualizer(weight_constrained_ac3)
 
 minimax_search = make_adversarial_visualizer(minimax_search_standard)
 alphabeta_search = make_adversarial_visualizer(alphabeta_search_standard)

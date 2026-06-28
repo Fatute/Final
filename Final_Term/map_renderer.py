@@ -187,7 +187,7 @@ class MazeVisualizer:
     def reset(self):
         self.grid = [row.copy() for row in DEFAULT_MAZE]
         
-    def draw(self, screen, visited, frontier, current, path, is_adversarial=False, is_csp=False, placed_pacmans=[], found=False, is_sensorless=False, unknown_mask=None):
+    def draw(self, screen, visited, frontier, current, path, is_adversarial=False, is_csp=False, placed_pacmans=[], found=False, is_sensorless=False, unknown_mask=None, csp_action=None, is_weight_csp=False):
         # Update Pacman mouth animation
         if self.mouth_closing:
             self.pacman_mouth_angle -= 2
@@ -223,7 +223,14 @@ class MazeVisualizer:
                     is_special_cell = (r, c) == START_CELL or (is_adversarial and (r, c) == GOAL_CELL) or (is_csp and (r, c) in placed_pacmans)
                     is_covered = False
                     if val == 1 and not is_special_cell and not is_covered:
-                        pygame.draw.circle(screen, (248, 187, 208), (cell_x + self.cell_size // 2, cell_y + self.cell_size // 2), 3)
+                        if is_weight_csp:
+                            from algorithms.csp import _get_coin_score
+                            score = _get_coin_score(r, c)
+                            font = get_best_font(FONT_FAMILIES, 12, bold=True)
+                            score_lbl = font.render(str(score), True, (255, 200, 100))
+                            screen.blit(score_lbl, (cell_x + self.cell_size//2 - score_lbl.get_width()//2, cell_y + self.cell_size//2 - score_lbl.get_height()//2))
+                        else:
+                            pygame.draw.circle(screen, (248, 187, 208), (cell_x + self.cell_size // 2, cell_y + self.cell_size // 2), 3)
                         
                     if is_sensorless and (r, c) == (5, 7):
                         pygame.draw.rect(screen, (76, 175, 80), (cell_x + 2, cell_y + 2, self.cell_size - 4, self.cell_size - 4))
@@ -234,9 +241,81 @@ class MazeVisualizer:
                 if unknown_mask and (r, c) in unknown_mask:
                     pygame.draw.rect(screen, (0, 0, 0), (cell_x, cell_y, self.cell_size, self.cell_size))
                         
-        if is_csp:
+        if is_weight_csp:
+            # ── Weight Constrained Path CSP ────────────────────────
+            # Draw Domain (Candidates)
+            if frontier:
+                for r, c in frontier:
+                    cx = self.x_offset + c * self.cell_size + self.cell_size // 2
+                    cy = self.y_offset + r * self.cell_size + self.cell_size // 2
+                    pygame.draw.circle(screen, (150, 150, 150), (cx, cy), max(2, self.cell_size // 8))
+
+            # Draw current candidate cell being tried or backtracked
+            if current and current != START_CELL:
+                curr_x = self.x_offset + current[1] * self.cell_size
+                curr_y = self.y_offset + current[0] * self.cell_size
+                if csp_action == 'backtrack':
+                    # Red flash background
+                    flash_surf = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
+                    pygame.draw.rect(flash_surf, (255, 50, 50, 180), (1, 1, self.cell_size - 2, self.cell_size - 2))
+                    screen.blit(flash_surf, (curr_x, curr_y))
+                    # Red X
+                    pygame.draw.line(screen, (255, 0, 0), (curr_x + 5, curr_y + 5), (curr_x + self.cell_size - 5, curr_y + self.cell_size - 5), 4)
+                    pygame.draw.line(screen, (255, 0, 0), (curr_x + self.cell_size - 5, curr_y + 5), (curr_x + 5, curr_y + self.cell_size - 5), 4)
+                else:
+                    # Yellow border for 'try'
+                    pygame.draw.rect(screen, (255, 220, 0),
+                                     (curr_x + 1, curr_y + 1, self.cell_size - 2, self.cell_size - 2), 3)
+
+            # Draw Goal (Cherry)
+            gx = self.x_offset + GOAL_CELL[1] * self.cell_size + self.cell_size // 2
+            gy = self.y_offset + GOAL_CELL[0] * self.cell_size + self.cell_size // 2
+            pygame.draw.circle(screen, (255, 0, 50), (gx - 5, gy + 5), 6)
+            pygame.draw.circle(screen, (255, 0, 50), (gx + 5, gy + 5), 6)
+            pygame.draw.arc(screen, (0, 200, 0), (gx - 10, gy - 10, 15, 15), 0, 1.5, 2)
+            pygame.draw.arc(screen, (0, 200, 0), (gx - 5, gy - 15, 15, 20), 1.5, 3.14, 2)
+            
+            # Draw Path with lines
+            if placed_pacmans:
+                for i in range(len(placed_pacmans) - 1):
+                    p1 = placed_pacmans[i]
+                    p2 = placed_pacmans[i+1]
+                    p1x = self.x_offset + p1[1] * self.cell_size + self.cell_size // 2
+                    p1y = self.y_offset + p1[0] * self.cell_size + self.cell_size // 2
+                    p2x = self.x_offset + p2[1] * self.cell_size + self.cell_size // 2
+                    p2y = self.y_offset + p2[0] * self.cell_size + self.cell_size // 2
+                    pygame.draw.line(screen, (255, 255, 0), (p1x, p1y), (p2x, p2y), 3)
+            
+            # Draw Pacman at head of path
+            if placed_pacmans:
+                pac_cell = placed_pacmans[-1]
+            else:
+                pac_cell = START_CELL
+                
+            pac_x = self.x_offset + pac_cell[1] * self.cell_size + self.cell_size // 2
+            pac_y = self.y_offset + pac_cell[0] * self.cell_size + self.cell_size // 2
+            draw_pacman(screen, pac_x, pac_y, self.cell_size // 2 - 2, self.pacman_mouth_angle)
+            
+            # Draw Current Score Text
+            from algorithms.csp import _get_coin_score
+            import config
+            current_score = sum(_get_coin_score(r,c) for r,c in placed_pacmans if (r,c) != START_CELL and (r,c) != GOAL_CELL) if placed_pacmans else 0
+            font = get_best_font(FONT_FAMILIES, 24, bold=True)
+            color = (255, 50, 50) if current_score > config.MAX_SCORE else (100, 255, 100)
+            score_txt = font.render(f"Score: {current_score} / {config.MAX_SCORE}", True, color)
+            screen.blit(score_txt, (self.x_offset, self.y_offset - 35))
+
+        elif is_csp:
             # ── Blocking CSP ──────────────────────────────────────
-            # Draw reachable area (green tint) — shrinks as ghosts block paths
+            # Draw Domain (Candidates)
+            if frontier:
+                for r, c in frontier:
+                    if (r, c) not in placed_pacmans and (r, c) != START_CELL:
+                        cx = self.x_offset + c * self.cell_size + self.cell_size // 2
+                        cy = self.y_offset + r * self.cell_size + self.cell_size // 2
+                        pygame.draw.circle(screen, (150, 150, 150), (cx, cy), max(2, self.cell_size // 8))
+
+            # Draw reachable area (green tint)
             if visited:
                 reach_surf = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
                 pygame.draw.rect(reach_surf, (0, 210, 120, 65),
@@ -253,16 +332,56 @@ class MazeVisualizer:
                 py = self.y_offset + pr * self.cell_size + self.cell_size // 2
                 draw_ghost(screen, px, py, self.cell_size - 4, (244, 67, 54))
 
-            # Draw current candidate cell being tried (yellow border)
+            # Draw current candidate cell being tried or backtracked
             if current and current not in placed_pacmans and current != START_CELL:
                 curr_x = self.x_offset + current[1] * self.cell_size
                 curr_y = self.y_offset + current[0] * self.cell_size
-                pygame.draw.rect(screen, (255, 220, 0),
-                                 (curr_x + 1, curr_y + 1, self.cell_size - 2, self.cell_size - 2), 3)
+                if csp_action == 'backtrack':
+                    # Red flash background
+                    flash_surf = pygame.Surface((self.cell_size, self.cell_size), pygame.SRCALPHA)
+                    pygame.draw.rect(flash_surf, (255, 50, 50, 180), (1, 1, self.cell_size - 2, self.cell_size - 2))
+                    screen.blit(flash_surf, (curr_x, curr_y))
+                    # Red X
+                    pygame.draw.line(screen, (255, 0, 0), (curr_x + 5, curr_y + 5), (curr_x + self.cell_size - 5, curr_y + self.cell_size - 5), 4)
+                    pygame.draw.line(screen, (255, 0, 0), (curr_x + self.cell_size - 5, curr_y + 5), (curr_x + 5, curr_y + self.cell_size - 5), 4)
+                else:
+                    # Yellow border for 'try'
+                    pygame.draw.rect(screen, (255, 220, 0),
+                                     (curr_x + 1, curr_y + 1, self.cell_size - 2, self.cell_size - 2), 3)
 
-            # Draw Pacman at start
+            # Draw Goal (Cherry) and Connection
+            gx = self.x_offset + GOAL_CELL[1] * self.cell_size + self.cell_size // 2
+            gy = self.y_offset + GOAL_CELL[0] * self.cell_size + self.cell_size // 2
+            
+            # Draw Cherry manually
+            pygame.draw.circle(screen, (255, 0, 50), (gx - 5, gy + 5), 6)
+            pygame.draw.circle(screen, (255, 0, 50), (gx + 5, gy + 5), 6)
+            pygame.draw.arc(screen, (0, 200, 0), (gx - 10, gy - 10, 15, 15), 0, 1.5, 2)
+            pygame.draw.arc(screen, (0, 200, 0), (gx - 5, gy - 15, 15, 20), 1.5, 3.14, 2)
+            
             pac_x = self.x_offset + START_CELL[1] * self.cell_size + self.cell_size // 2
             pac_y = self.y_offset + START_CELL[0] * self.cell_size + self.cell_size // 2
+            
+            if GOAL_CELL in visited:
+                # Danger connection line
+                import math
+                import time
+                dash_length = 10
+                t = time.time() * 15
+                dx, dy = gx - pac_x, gy - pac_y
+                dist = math.hypot(dx, dy)
+                if dist > 0:
+                    dash_count = int(dist / dash_length)
+                    for i in range(dash_count):
+                        if (i - int(t)) % 2 == 0:
+                            start_p = (pac_x + dx * i / dash_count, pac_y + dy * i / dash_count)
+                            end_p = (pac_x + dx * (i + 1) / dash_count, pac_y + dy * (i + 1) / dash_count)
+                            pygame.draw.line(screen, (255, 100, 100), start_p, end_p, 2)
+            else:
+                # Safe goal highlight
+                pygame.draw.circle(screen, (100, 255, 100), (gx, gy), self.cell_size // 2, 2)
+
+            # Draw Pacman at start
             draw_pacman(screen, pac_x, pac_y, self.cell_size // 2 - 2, self.pacman_mouth_angle)
 
         else:

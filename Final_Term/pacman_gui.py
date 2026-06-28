@@ -185,23 +185,27 @@ class Application:
             card_color = COLOR_ORANGE
         elif group_index == 4:
             algos = ["Simple Backtracking", "Backtracking + AC-3", "Backtracking + Forward Checking"]
-            desc = "Ghost Blocking CSP: tìm tập ghost nhỏ nhất để chặn TOÀN BỘ đường đi từ Pacman đến food. Ghost không được đặt trong vòng 1 ô quanh điểm sinh. So sánh 3 chiến lược: Backtracking cơ bản, AC-3 (Arc Consistency) và Forward Checking."
+            desc = "Đường đi có ràng buộc trọng số (Weight-Constrained Path). Tìm đường đi có tổng điểm số xu <= MAX_SCORE. Minh họa sức mạnh cắt tỉa của AC-3 và Forward Checking so với Backtracking cơ bản."
             card_color = COLOR_YELLOW
         else: # 5
             algos = ["Minimax", "Alpha-Beta Pruning", "Expectimax"]
             desc = "Giải thuật đối kháng mô phỏng trò chơi giữa Pacman (MAX) cố gắng ăn Cherry và Ghost (MIN) cố gắng đuổi bắt Pacman trên lưới mê cung đồ thị."
             card_color = COLOR_PURPLE
             
-        self.sub_buttons = [
-            Button(80, 200, 350, 70, f"{algos[0]}", card_color, (255, 255, 255), text_color=(255, 255, 255)),
-            Button(80, 300, 350, 70, f"{algos[1]}", card_color, (255, 255, 255), text_color=(255, 255, 255)),
-            Button(80, 400, 350, 70, f"{algos[2]}", card_color, (255, 255, 255), text_color=(255, 255, 255)),
-            Button(80, 520, 350, 70, "Trở Lại (Back)", (60, 70, 90), (140, 160, 180))
-        ]
+        self.sub_buttons = []
+        btn_y = 200
+        btn_height = min(70, 300 // len(algos))
+        btn_spacing = btn_height + (10 if len(algos) > 3 else 30)
+        
+        for algo in algos:
+            self.sub_buttons.append(Button(80, btn_y, 350, btn_height, f"{algo}", card_color, (255, 255, 255), text_color=(255, 255, 255)))
+            btn_y += btn_spacing
+            
+        self.sub_buttons.append(Button(80, 520, 350, 70, "Trở Lại (Back)", (60, 70, 90), (140, 160, 180)))
         
         # Custom button colors for gold theme to keep black text readable
         if group_index == 4:
-            for b in self.sub_buttons[:3]:
+            for b in self.sub_buttons[:-1]:
                 b.text_color = (15, 20, 30)
                 
         self.sub_card = Card(480, 200, 460, 390, f"Nhóm: {group_name}", desc, border_color=card_color)
@@ -314,11 +318,11 @@ class Application:
             self.grid_1 = grid_1
             self.generator = algorithms.and_or_search(grid_1, START_CELL, (5, 7))
         elif algo == "Simple Backtracking":
-            self.generator = algorithms.simple_backtracking(active_maze, START_CELL, GOAL_CELL)
+            self.generator = algorithms.weight_constrained_simple(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Backtracking + AC-3":
-            self.generator = algorithms.backtracking_ac3(active_maze, START_CELL, GOAL_CELL)
+            self.generator = algorithms.weight_constrained_ac3(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Backtracking + Forward Checking":
-            self.generator = algorithms.backtracking_forward_checking(active_maze, START_CELL, GOAL_CELL)
+            self.generator = algorithms.weight_constrained_forward(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Minimax":
             self.generator = algorithms.minimax_search(active_maze, START_CELL, active_maze_goal)
         elif algo == "Alpha-Beta Pruning":
@@ -365,6 +369,8 @@ class Application:
                 self.visited, self.frontier, self.current_node, self.path, self.found, self.path_b1, self.path_b2 = val
             elif self.selected_group == 5:
                 self.visited, self.frontier, self.current_node, self.path, self.found, self.p1_score, self.p2_score = val
+            elif self.selected_group == 4:
+                self.visited, self.frontier, self.current_node, self.path, self.found, self.csp_action = val
             else:
                 self.visited, self.frontier, self.current_node, self.path, self.found = val
             
@@ -555,9 +561,11 @@ class Application:
             self.visualizer_maze.draw(
                 screen, self.visited, self.frontier, self.current_node, self.path, 
                 is_adversarial=(self.selected_group == 5), 
-                is_csp=(self.selected_group == 4), 
+                is_csp=False, 
                 placed_pacmans=self.path if self.path else [], 
-                found=self.found
+                found=self.found,
+                is_weight_csp=(self.selected_group == 4),
+                csp_action=getattr(self, 'csp_action', None)
             )
             
             # Bottom Info Card
@@ -641,7 +649,7 @@ class Application:
             elif self.state == STATE_SUB_MENU:
                 for i, button in enumerate(self.sub_buttons):
                     if button.handle_event(event):
-                        if i == 3: # Back
+                        if i == len(self.sub_buttons) - 1: # Back
                             self.state = STATE_MAIN_MENU
                             self.transition.fade_in()
                         else:

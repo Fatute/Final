@@ -90,11 +90,11 @@ MAZE_2 = [
 MAZE_3 = DEFAULT_MAZE
 MAZE_4 = [
     [2, 2, 2, 2, 2, 2, 2, 2],
-    [2, 0, 0, 0, 0, 0, 0, 2],  # Hành lang trên — Pacman bắt đầu (1,1)
-    [2, 0, 2, 2, 2, 2, 0, 2],  # Tường ngang, 2 lỗ: (2,1) và (2,6)
-    [2, 0, 0, 0, 0, 0, 0, 2],  # Hành lang giữa rộng
-    [2, 2, 2, 2, 2, 0, 2, 2],  # Tường ngang, chỉ lỗ (4,5)
-    [2, 0, 0, 0, 0, 0, 0, 2],  # Hành lang dưới — Goal tại (5,6)
+    [2, 1, 1, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 2],
+    [2, 1, 1, 1, 1, 1, 1, 2],
     [2, 2, 2, 2, 2, 2, 2, 2]
 ]
 CSP_START_CELL = (1, 1)   # Pacman góc trên trái
@@ -175,16 +175,16 @@ ALGO_INFO = {
         "desc": "Tìm kiếm kế hoạch (contingent plan) trong môi trường không tất định. Pacman chọn một hướng nhưng môi trường có thể làm chệch hướng ngẫu nhiên."
     },
     "Simple Backtracking": {
-        "title": "Ghost Blocking: Simple Backtracking",
-        "desc": "Tìm tập nhỏ nhất các ghost để chặn TOÀN BỘ đường đi từ Pacman đến goal. Ghost không được đứng đúng ô Pacman và phải cách nhau ít nhất 2 ô. Thử tăng dần số ghost k=1,2,3... theo thứ tự cố định."
+        "title": "Weight-Constrained: Simple Backtracking",
+        "desc": "Dò đường đi không vượt ngưỡng MAX_SCORE. Chỉ quay lui (backtrack) SAU KHI đã bước lên ô lân cận và phát hiện ra tổng điểm vượt ngưỡng."
     },
     "Backtracking + AC-3": {
-        "title": "Ghost Blocking: AC-3 (Arc Consistency)",
-        "desc": "Ghost Blocking kết hợp AC-3: trước mỗi bước thử, lọc domain còn lại chỉ giữ cell thực sự còn chặn được goal và đủ cách các ghost khác, rồi enforce arc consistency. Domain rỗng → quay lui sớm."
+        "title": "Weight-Constrained: AC-3",
+        "desc": "Tỉa nhánh thông minh bằng Arc Consistency. Nếu (Điểm hiện tại + Điểm ô tiếp theo + Khoảng cách Manhattan tới đích) > MAX_SCORE thì loại bỏ ô lân cận ngay."
     },
     "Backtracking + Forward Checking": {
-        "title": "Ghost Blocking: Forward Checking",
-        "desc": "Ghost Blocking kết hợp kiểm tra trước: sau mỗi lần đặt ghost, kiểm tra xem các vị trí ứng viên còn lại có đủ khả năng chặn nốt goal chưa bị chặn không. Nếu không → quay lui sớm, tránh lãng phí."
+        "title": "Weight-Constrained: Forward Checking",
+        "desc": "Kiểm tra trước (Forward Checking). Loại bỏ ngay các ô lân cận làm lố MAX_SCORE khỏi Domain. Pacman sẽ KHÔNG BAO GIỜ bước vào ô làm lố điểm."
     },
     "Minimax": {
         "title": "Minimax Adversarial Search",
@@ -199,3 +199,5 @@ ALGO_INFO = {
         "desc": "Thuật toán Expectimax. Dùng khi đối thủ (Ghost) không chơi tối ưu mà di chuyển ngẫu nhiên (chance node), tính giá trị trung bình có trọng số của các trạng thái tương lai."
     }
 }
+
+MAX_SCORE = 20
