@@ -41,7 +41,7 @@ def greedy_best_first(grid, start, goal):
                     else:
                         full_path.extend(sub_path)
                     curr_pos = target
-            return full_path
+            return full_path, len(reached_set)
             
         for next_pos in moves(grid, curr.state):
             if next_pos not in reached_set:
@@ -57,7 +57,7 @@ def greedy_best_first(grid, start, goal):
                 else:
                     frontier.append(Node(next_pos, parent=curr, g=new_g, h=new_h))
                     
-    return []
+    return [], len(reached_set)
 
 
 # --- 2. A* Search ---
@@ -91,7 +91,7 @@ def a_star(grid, start, goal):
                     else:
                         full_path.extend(sub_path)
                     curr_pos = target
-            return full_path
+            return full_path, len(reached_set)
             
         for next_pos in moves(grid, curr.state):
             if next_pos not in reached_set:
@@ -107,7 +107,7 @@ def a_star(grid, start, goal):
                 else:
                     frontier.append(Node(next_pos, parent=curr, g=new_g, h=new_h))
                     
-    return []
+    return [], len(reached_set)
 
 
 # --- 3. IDA* Search Helper ---
@@ -174,10 +174,10 @@ def ida_star(grid, start, goal):
                     else:
                         full_path.extend(sub_path)
                     curr_pos = target
-            return full_path
+            return full_path, len(reached_set)
             
         if next_threshold == float('inf'):
             break
         threshold = next_threshold
         
-    return []
+    return [], len(reached_set)

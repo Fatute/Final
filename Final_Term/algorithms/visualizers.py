@@ -26,28 +26,46 @@ from .adversarial import (
     expectimax_search as expectimax_search_standard
 )
 
+# --- Generator Wrapper to allow custom attributes ---
+class GeneratorWrapper:
+    def __init__(self, gen, visited_count):
+        self.gen = gen
+        self.visited_count = visited_count
+    def __next__(self):
+        return next(self.gen)
+    def __iter__(self):
+        return self
+
 # --- Pathfinding Helper Visualizer ---
 def make_path_visualizer(algo_func):
     def visualizer(grid, start, goal, *args, **kwargs):
         # Run standard search algorithm
-        full_path = algo_func(grid, start, goal, *args, **kwargs)
-        
-        # Yield initial state
-        yield set(), [], start, None, False
-        
-        if full_path:
-            all_food = {(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == 1}
-            for i in range(len(full_path)):
-                path_so_far = full_path[:i+1]
-                visited_so_far = set(path_so_far)
-                current_node = full_path[i]
-                is_found = all_food.issubset(visited_so_far)
-                yield visited_so_far, [], current_node, path_so_far, is_found
-                
-                if is_found:
-                    break
+        res = algo_func(grid, start, goal, *args, **kwargs)
+        if isinstance(res, tuple):
+            full_path, visited_count = res
         else:
+            full_path = res
+            visited_count = len(full_path) if full_path else 0
+        
+        def gen():
+            # Yield initial state
             yield set(), [], start, None, False
+            
+            if full_path:
+                all_food = {(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == 1}
+                for i in range(len(full_path)):
+                    path_so_far = full_path[:i+1]
+                    visited_so_far = set(path_so_far)
+                    current_node = full_path[i]
+                    is_found = all_food.issubset(visited_so_far)
+                    yield visited_so_far, [], current_node, path_so_far, is_found
+                    
+                    if is_found:
+                        break
+            else:
+                yield set(), [], start, None, False
+                
+        return GeneratorWrapper(gen(), visited_count)
     return visualizer
 
 # --- Weight-Constrained Path CSP Visualizer ---
@@ -89,161 +107,191 @@ def make_adversarial_visualizer(adversarial_func):
         from .adversarial import get_reachable_cells, GOAL_CELL, get_center_score
         reachable = get_reachable_cells(grid, start)
         initial_food = frozenset(
-            (r, c) for r, c in reachable if grid[r][c] == 1
+            (r, c) for r, c in reachable if grid[r][c] == 1 and (r, c) != start and (r, c) != GOAL_CELL
         )
         
         # Run standard adversarial search to get the path
-        best_path, exec_time = adversarial_func(grid, start, goal, *args, **kwargs)
+        res = adversarial_func(grid, start, goal, *args, **kwargs)
+        if isinstance(res, tuple) and len(res) == 3:
+            best_path, exec_time, visited_count = res
+        else:
+            best_path, exec_time = res
+            visited_count = len(best_path) // 2 if best_path else 0
         
-        pacman1_pos = start
-        pacman2_pos = GOAL_CELL
-        food_set = initial_food
-        pacman1_score = 0
-        pacman2_score = 0
-        path_so_far = [pacman1_pos]
-        path_so_far2 = [pacman2_pos]
-        
-        # Yield initial state
-        yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), False, pacman1_score, pacman2_score, exec_time)
-        
-        rows = len(grid)
-        cols = len(grid[0])
-        
-        for idx, move in enumerate(best_path):
-            if idx % 2 == 0:
-                pacman1_pos = move
-                path_so_far.append(pacman1_pos)
-                if pacman1_pos in food_set:
-                    food_set = food_set - {pacman1_pos}
-                    pacman1_score += get_center_score(pacman1_pos[0], pacman1_pos[1], rows, cols)
-            else:
-                pacman2_pos = move
-                path_so_far2.append(pacman2_pos)
-                if pacman2_pos in food_set:
-                    food_set = food_set - {pacman2_pos}
-                    pacman2_score += get_center_score(pacman2_pos[0], pacman2_pos[1], rows, cols)
+        def gen():
+            pacman1_pos = start
+            pacman2_pos = GOAL_CELL
+            food_set = initial_food
+            pacman1_score = 0
+            pacman2_score = 0
+            path_so_far = [pacman1_pos]
+            path_so_far2 = [pacman2_pos]
+            
+            # Yield initial state
+            yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), False, pacman1_score, pacman2_score, exec_time)
+            
+            rows = len(grid)
+            cols = len(grid[0])
+            
+            for idx, move in enumerate(best_path):
+                if idx % 2 == 0:
+                    pacman1_pos = move
+                    path_so_far.append(pacman1_pos)
+                    if pacman1_pos in food_set:
+                        food_set = food_set - {pacman1_pos}
+                        pacman1_score += get_center_score(pacman1_pos[0], pacman1_pos[1], rows, cols)
+                else:
+                    pacman2_pos = move
+                    path_so_far2.append(pacman2_pos)
+                    if pacman2_pos in food_set:
+                        food_set = food_set - {pacman2_pos}
+                        pacman2_score += get_center_score(pacman2_pos[0], pacman2_pos[1], rows, cols)
+                        
+                is_last = (idx == len(best_path) - 1) or not food_set
+                yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), is_last, pacman1_score, pacman2_score, exec_time)
+                if not food_set:
+                    break
                     
-            is_last = (idx == len(best_path) - 1) or not food_set
-            yield (set(path_so_far) | set(path_so_far2), [pacman2_pos], pacman1_pos, list(path_so_far), is_last, pacman1_score, pacman2_score, exec_time)
-            if not food_set:
-                break
+        return GeneratorWrapper(gen(), visited_count)
     return visualizer
 
 # --- Sensorless Helper Visualizer ---
 def make_sensorless_visualizer(algo_func):
     def visualizer(grid_1, grid_2, start_1, start_2, goal, *args, **kwargs):
-        actions = algo_func(grid_1, grid_2, start_1, start_2, goal, *args, **kwargs)
-        
-        def apply_action(r, c, m, action):
-            nr, nc = r, c
-            if action == 'U': nr -= 1
-            elif action == 'D': nr += 1
-            elif action == 'L': nc -= 1
-            elif action == 'R': nc += 1
-            
-            grid = grid_1 if m == 1 else grid_2
-            if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
-                return (nr, nc)
-            return (r, c)
-            
-        t_pos, b2_pos = start_1, start_2
-        path_t, path_b1, path_b2 = [t_pos], [b2_pos], [t_pos]
-        
-        # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
-        yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
-        
-        if actions:
-            for i, a in enumerate(actions):
-                t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
-                b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
-                
-                path_t.append(t_pos)
-                path_b1.append(b2_pos)
-                path_b2.append(t_pos)
-                
-                is_last_step = (i == len(actions) - 1)
-                yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)
+        res = algo_func(grid_1, grid_2, start_1, start_2, goal, *args, **kwargs)
+        if isinstance(res, tuple):
+            actions, visited_count = res
         else:
-            yield set(), [], start_1, [], True, [], []
+            actions = res
+            visited_count = len(actions) if actions else 0
             
+        def gen():
+            def apply_action(r, c, m, action):
+                nr, nc = r, c
+                if action == 'U': nr -= 1
+                elif action == 'D': nr += 1
+                elif action == 'L': nc -= 1
+                elif action == 'R': nc += 1
+                
+                grid = grid_1 if m == 1 else grid_2
+                if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                    return (nr, nc)
+                return (r, c)
+                
+            t_pos, b2_pos = start_1, start_2
+            path_t, path_b1, path_b2 = [t_pos], [b2_pos], [t_pos]
+            
+            # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
+            yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
+            
+            if actions:
+                for i, a in enumerate(actions):
+                    t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
+                    b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
+                    
+                    path_t.append(t_pos)
+                    path_b1.append(b2_pos)
+                    path_b2.append(t_pos)
+                    
+                    is_last_step = (i == len(actions) - 1)
+                    yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)
+            else:
+                yield set(), [], start_1, [], True, [], []
+                
+        return GeneratorWrapper(gen(), visited_count)
     return visualizer
 
 # --- Partial Helper Visualizer ---
 def make_partial_visualizer(algo_func):
     def visualizer(grid_1, grid_2, start, goal, *args, **kwargs):
-        actions = algo_func(grid_1, grid_2, start, goal, *args, **kwargs)
-        
-        def apply_action(r, c, m, action):
-            nr, nc = r, c
-            if action == 'U': nr -= 1
-            elif action == 'D': nr += 1
-            elif action == 'L': nc -= 1
-            elif action == 'R': nc += 1
-            
-            grid = grid_1 if m == 1 else grid_2
-            if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
-                return (nr, nc)
-            return (r, c)
-            
-        t_pos, b2_pos = start, start
-        path_t, path_b1, path_b2 = [t_pos], [t_pos], [b2_pos]
-        
-        # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
-        yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
-        
-        if actions:
-            for i, a in enumerate(actions):
-                t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
-                b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
-                
-                path_t.append(t_pos)
-                path_b1.append(t_pos)
-                path_b2.append(b2_pos)
-                
-                is_last_step = (i == len(actions) - 1)
-                yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)
+        res = algo_func(grid_1, grid_2, start, goal, *args, **kwargs)
+        if isinstance(res, tuple):
+            actions, visited_count = res
         else:
-            yield set(), [], start, [], True, [], []
+            actions = res
+            visited_count = len(actions) if actions else 0
             
+        def gen():
+            def apply_action(r, c, m, action):
+                nr, nc = r, c
+                if action == 'U': nr -= 1
+                elif action == 'D': nr += 1
+                elif action == 'L': nc -= 1
+                elif action == 'R': nc += 1
+                
+                grid = grid_1 if m == 1 else grid_2
+                if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                    return (nr, nc)
+                return (r, c)
+                
+            t_pos, b2_pos = start, start
+            path_t, path_b1, path_b2 = [t_pos], [t_pos], [b2_pos]
+            
+            # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
+            yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
+            
+            if actions:
+                for i, a in enumerate(actions):
+                    t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
+                    b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
+                    
+                    path_t.append(t_pos)
+                    path_b1.append(t_pos)
+                    path_b2.append(b2_pos)
+                    
+                    is_last_step = (i == len(actions) - 1)
+                    yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)
+            else:
+                yield set(), [], start, [], True, [], []
+                
+        return GeneratorWrapper(gen(), visited_count)
     return visualizer
 
 # --- AND-OR Helper Visualizer ---
 def make_and_or_visualizer(algo_func):
     def visualizer(grid, start, goal, *args, **kwargs):
         import random
-        policy = algo_func(grid, start, goal, *args, **kwargs)
-        action_map = {'U': (-1, 0), 'D': (1, 0), 'L': (0, -1), 'R': (0, 1)}
-        
-        r, c = start
-        path = [(r, c)]
-        
-        yield set(), [], (r, c), policy, False
-        
-        steps = 0
-        while (r, c) != goal and steps < 150:
-            action = policy.get((r, c), 'U')
+        res = algo_func(grid, start, goal, *args, **kwargs)
+        if isinstance(res, tuple):
+            policy, visited_count = res
+        else:
+            policy = res
+            visited_count = len(policy) if policy else 0
             
-            valid_nbs = []
-            for a, (dr, dc) in action_map.items():
-                nr, nc = r + dr, c + dc
-                if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
-                    valid_nbs.append((nr, nc))
-                    
-            if valid_nbs:
-                if random.random() < 0.4: # 40% chance to slip to a random neighbor
-                    r, c = random.choice(valid_nbs)
-                else:
-                    dr, dc = action_map.get(action, (0, 0))
+        def gen():
+            action_map = {'U': (-1, 0), 'D': (1, 0), 'L': (0, -1), 'R': (0, 1)}
+            
+            r, c = start
+            path = [(r, c)]
+            
+            yield set(), [], (r, c), policy, False
+            
+            steps = 0
+            while (r, c) != goal and steps < 150:
+                action = policy.get((r, c), 'U')
+                
+                valid_nbs = []
+                for a, (dr, dc) in action_map.items():
                     nr, nc = r + dr, c + dc
                     if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
-                        r, c = nr, nc
+                        valid_nbs.append((nr, nc))
+                        
+                if valid_nbs:
+                    if random.random() < 0.4: # 40% chance to slip to a random neighbor
+                        r, c = random.choice(valid_nbs)
+                    else:
+                        dr, dc = action_map.get(action, (0, 0))
+                        nr, nc = r + dr, c + dc
+                        if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
+                            r, c = nr, nc
+                
+                path.append((r, c))
+                steps += 1
+                yield set(path), [], (r, c), policy, False
+                
+            yield set(path), [], (r, c), policy, True
             
-            path.append((r, c))
-            steps += 1
-            yield set(path), [], (r, c), policy, False
-            
-        yield set(path), [], (r, c), policy, True
-        
+        return GeneratorWrapper(gen(), visited_count)
     return visualizer
 
 # --- Instantiate Visualizers ---

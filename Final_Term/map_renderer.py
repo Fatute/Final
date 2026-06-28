@@ -220,7 +220,7 @@ class MazeVisualizer:
                     pygame.draw.rect(screen, (10, 15, 30), (cell_x, cell_y, self.cell_size, self.cell_size))
                     
                     # Pac-dot in the center (only draw if it is food (1) and not special/covered)
-                    is_special_cell = (r, c) == START_CELL or (is_csp and (r, c) in placed_pacmans)
+                    is_special_cell = (r, c) == START_CELL or (r, c) == GOAL_CELL or (is_csp and (r, c) in placed_pacmans)
                     is_covered = False
                     if val == 1 and not is_special_cell and not is_covered:
                         if is_weight_csp:

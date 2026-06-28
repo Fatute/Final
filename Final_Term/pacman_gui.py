@@ -119,17 +119,18 @@ class Application:
         # CSP Stats
         self.csp_backtracks = 0
         self.csp_steps = 0
+        self.visited_count = 0
         
     def setup_ui(self):
         # --- MAIN MENU BUTTONS ---
         # 7 buttons: 6 categories + 1 exit
         self.main_buttons = [
-            Button(150, 250, 320, 70, "TÌM KIẾM KHÔNG CÓ THÔNG TIN\n(Uninformed Search)", COLOR_RED, (255, 100, 100)),
-            Button(150, 350, 320, 70, "TÌM KIẾM CÓ THÔNG TIN\n(Informed Search)", COLOR_PINK, (255, 120, 180)),
-            Button(150, 450, 320, 70, "TÌM KIẾM CỤC BỘ\n(Local Search)", COLOR_CYAN, (150, 230, 255)),
-            Button(550, 250, 320, 70, "TÌM KIẾM MÙ\n(Blind Search)", COLOR_ORANGE, (255, 180, 100)),
-            Button(550, 350, 320, 70, "TÌM KIẾM RÀNG BUỘC\n(Constraint Satisfaction)", COLOR_YELLOW, (255, 230, 100), text_color=(15, 20, 30)),
-            Button(550, 450, 320, 70, "THUẬT TOÁN ĐỐI KHÁNG\n(Adversarial Search)", COLOR_PURPLE, (220, 130, 255)),
+            Button(150, 250, 320, 70, "TÌM KIẾM KHÔNG CÓ THÔNG TIN\n(Uninformed Search)", COLOR_RED, (255, 100, 100), font_size=19),
+            Button(150, 350, 320, 70, "TÌM KIẾM CÓ THÔNG TIN\n(Informed Search)", COLOR_PINK, (255, 120, 180), font_size=19),
+            Button(150, 450, 320, 70, "TÌM KIẾM CỤC BỘ\n(Local Search)", COLOR_CYAN, (150, 230, 255), font_size=19),
+            Button(550, 250, 320, 70, "TÌM KIẾM MÙ\n(Blind Search)", COLOR_ORANGE, (255, 180, 100), font_size=19),
+            Button(550, 350, 320, 70, "TÌM KIẾM RÀNG BUỘC\n(Constraint Satisfaction)", COLOR_YELLOW, (255, 230, 100), text_color=(15, 20, 30), font_size=19),
+            Button(550, 450, 320, 70, "THUẬT TOÁN ĐỐI KHÁNG\n(Adversarial Search)", COLOR_PURPLE, (220, 130, 255), font_size=19),
             Button(352, 570, 320, 70, "EXIT\n(Thoát)", (60, 70, 90), (140, 160, 180))
         ]
         
@@ -238,6 +239,7 @@ class Application:
         self.path_b1 = None
         self.path_b2 = None
         self.exec_time = 0.0
+        self.visited_count = 0
         
         # Get active maze based on selected group
         from config import MAZE_0, MAZE_1, MAZE_2, MAZE_3, MAZE_4, MAZE_5, DEFAULT_MAZE
@@ -375,6 +377,8 @@ class Application:
             else:
                 self.visited, self.frontier, self.current_node, self.path, self.found = val
             
+            self.visited_count = getattr(self.generator, 'visited_count', len(self.visited))
+            
             if self.selected_group == 4:
                 self.csp_steps += 1
                 if self.path and len(self.path) < len(prev_path):
@@ -385,7 +389,8 @@ class Application:
             # Done
             self.is_running = False
             if self.selected_group == 5 and self.path:
-                print("Đường đi tốt nhất của Pacman 1:", self.path)
+                print("Duong di tot nhat cua Pacman 1:", self.path)
+            print(f"So nut da duyet (Visited nodes): {self.visited_count}")
             return False
             
     def update(self):
@@ -608,7 +613,7 @@ class Application:
                 stats_list.append(f"Kết quả: {winner_str}")
             
             stats_list.extend([
-                f"Đã duyệt (Visited): {len(self.visited)}",
+                f"Đã duyệt (Visited): {self.visited_count}",
                 f"Pacman 1 ăn: {self.p1_score}",
                 f"Pacman 2 ăn: {self.p2_score}",
                 f"Thời gian: {exec_time_str}"
@@ -619,8 +624,7 @@ class Application:
             exec_time_str = f"{self.exec_time:.4f}s" if hasattr(self, 'exec_time') else "0.0000s"
             stats_list = [
                 f"Trạng thái: {status_text}",
-                f"Đã duyệt (Visited): {len(self.visited)}",
-                f"Hàng đợi (Frontier): {len(self.frontier)}",
+                f"Đã duyệt (Visited): {self.visited_count}",
                 f"Độ dài đường đi: {len(self.path) if self.path else 0}",
                 f"Tổng chi phí: {self.get_path_cost()}"
             ]

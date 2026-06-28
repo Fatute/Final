@@ -21,7 +21,7 @@ def sensorless_bfs(grid_1, grid_2, start_1, start_2, goal):
         return all((r, c) == goal for r, c, m in belief)
         
     if is_goal(initial_belief):
-        return []
+        return [], len(visited)
         
     queue = [(initial_belief, [])]
     visited = set([initial_belief])
@@ -37,12 +37,12 @@ def sensorless_bfs(grid_1, grid_2, start_1, start_2, goal):
                 new_actions = current_actions + [action]
                 
                 if is_goal(new_belief):
-                    return new_actions
+                    return new_actions, len(visited)
                     
                 visited.add(new_belief)
                 queue.append((new_belief, new_actions))
                 
-    return []
+    return [], len(visited)
 
 def partial_bfs(grid_1, grid_2, start, goal):
     rows = len(grid_1)
@@ -66,7 +66,7 @@ def partial_bfs(grid_1, grid_2, start, goal):
         return all((r, c) == goal for r, c, m in belief)
         
     if is_goal(initial_belief):
-        return []
+        return [], len(visited)
         
     queue = [(initial_belief, [])]
     visited = set([initial_belief])
@@ -82,12 +82,12 @@ def partial_bfs(grid_1, grid_2, start, goal):
                 new_actions = current_actions + [action]
                 
                 if is_goal(new_belief):
-                    return new_actions
+                    return new_actions, len(visited)
                     
                 visited.add(new_belief)
                 queue.append((new_belief, new_actions))
                 
-    return []
+    return [], len(visited)
 
 def and_or_search(grid, start, goal, max_depth=15):
     rows = len(grid)
@@ -150,10 +150,10 @@ def and_or_search(grid, start, goal, max_depth=15):
                     if (nr, nc) not in policy:
                         policy[(nr, nc)] = a
                         
-    return policy
+    return policy, len(policy)
 def bidirectional_search(grid, start, goal):
     if start == goal:
-        return [start]
+        return [start], 1
     
     fw_queue = [start]
     fw_parent = {start: None}
@@ -193,7 +193,7 @@ def bidirectional_search(grid, start, goal):
                 bw_queue.append(nxt)
 
     if intersect is None:
-        return []
+        return [], len(fw_parent) + len(bw_parent)
 
     # Reconstruct path
     path = []
@@ -210,4 +210,4 @@ def bidirectional_search(grid, start, goal):
         path.append(curr)
         curr = bw_parent[curr]
         
-    return path
+    return path, len(fw_parent) + len(bw_parent)

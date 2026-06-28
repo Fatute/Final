@@ -6,6 +6,8 @@ from config import GOAL_CELL
 
 sys.setrecursionlimit(20000)
 
+_visited_nodes_count = 0
+
 # --- Board helpers ---
 
 def get_center_score(r, c, rows=7, cols=8):
@@ -52,6 +54,8 @@ def utility(board):
 # --- Search algorithms ---
 
 def minimax(board, grid, d, visited_p1, visited_p2):
+    global _visited_nodes_count
+    _visited_nodes_count += 1
     if d == 0 or not find_blank(board, grid) or check_winner(board) is not False:
         return utility(board), []
 
@@ -78,6 +82,8 @@ def minimax(board, grid, d, visited_p1, visited_p2):
 
 
 def alphabeta(board, grid, alpha, beta, d, visited_p1, visited_p2):
+    global _visited_nodes_count
+    _visited_nodes_count += 1
     if d == 0 or not find_blank(board, grid) or check_winner(board) is not False:
         return utility(board), []
 
@@ -110,6 +116,8 @@ def alphabeta(board, grid, alpha, beta, d, visited_p1, visited_p2):
 
 
 def expectimax(board, grid, d, visited_p1, visited_p2):
+    global _visited_nodes_count
+    _visited_nodes_count += 1
     if d == 0 or not find_blank(board, grid) or check_winner(board) is not False:
         return utility(board), []
 
@@ -140,11 +148,13 @@ def expectimax(board, grid, d, visited_p1, visited_p2):
 # --- Shared game loop ---
 
 def _run_game_loop(grid, start, search_fn, label):
+    global _visited_nodes_count
+    _visited_nodes_count = 0
     import time
     start_time = time.time()
     
     reachable = get_reachable_cells(grid, start)
-    food_set  = frozenset((r, c) for r, c in reachable if grid[r][c] == 1)
+    food_set  = frozenset((r, c) for r, c in reachable if grid[r][c] == 1 and (r, c) != start and (r, c) != GOAL_CELL)
 
     board      = (start, GOAL_CELL, food_set, 0, 0, 'X')
     visited_p1 = {start}
@@ -152,15 +162,21 @@ def _run_game_loop(grid, start, search_fn, label):
     best_path  = []
     step       = 0
 
+    total_visited_nodes = 0
     while board[2] and step < 100:
         step += 1
         prev_food = len(board[2])
         turn = current_player(board)
 
+        _visited_nodes_count = 0
         val, path = search_fn(board, grid, visited_p1, visited_p2)
+        total_visited_nodes += _visited_nodes_count
+
         if turn == 'X':
             outcome_str = "Thang" if val > 0 else ("Thua" if val < 0 else "Hoa")
-            print(f"Buoc {step} - Luot Pacman 1: Gia tri toi uu du doan = {val} ({outcome_str})")
+            print(f"Buoc {step} - Luot Pacman 1: Gia tri toi uu du doan = {val} ({outcome_str}), So nut da duyet = {_visited_nodes_count}")
+        else:
+            print(f"Buoc {step} - Luot Pacman 2 (Doi thu): So nut da duyet = {_visited_nodes_count}")
         
         move = path[0] if path else None
         if not move:
@@ -189,7 +205,8 @@ def _run_game_loop(grid, start, search_fn, label):
     outcome_str = "Thang" if final_val > 0 else ("Thua" if final_val < 0 else "Hoa")
     print(f"Ket qua chung cuoc cua Pacman 1: {final_val} ({outcome_str})")
     print(f"Best Path of Pacman 1: {p1_path}")
-    return best_path, execution_time
+    print(f"Tong so nut da duyet: {total_visited_nodes}")
+    return best_path, execution_time, total_visited_nodes
 
 
 # --- Public entry points ---

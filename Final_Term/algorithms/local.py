@@ -44,7 +44,7 @@ def hill_climbing(grid, start, goal):
         path.append(curr)
         visited.add(curr)
 
-    return path
+    return path, len(visited)
 
 
 # --- 2. Beam Search ---
@@ -117,9 +117,9 @@ def beam_search(grid, start, goal, k=2):
             break
             
     if found_node:
-        return solution(found_node)
+        return solution(found_node), len(visited)
     else:
-        return solution(best_node_so_far)
+        return solution(best_node_so_far), len(visited)
 
 
 # --- 3. Simulated Annealing (Giả Lập Luyện Kim) ---
@@ -156,4 +156,4 @@ def simulated_annealing(grid, start, goal):
             
         T *= alpha
         
-    return path
+    return path, len(visited)
