@@ -35,20 +35,10 @@ def result(board, row, col, sign):
         return (p1, move, new_f_set, new_s1, new_s2, 'X')
 
 def utility(board):
-    p1, p2, f_set, s1, s2, turn = board
     winner = check_winner(board)
     if winner == 'X':    return 1
     if winner == 'O':    return -1
-    if winner == 'Draw': return 0
-    total = s1 + s2 + len(f_set)
-    if total == 0: return 0
-    score = (s1 - s2) / total
-    if f_set:
-        nearest_p1 = min(abs(p1[0]-f[0]) + abs(p1[1]-f[1]) for f in f_set)
-        nearest_p2 = min(abs(p2[0]-f[0]) + abs(p2[1]-f[1]) for f in f_set)
-        score -= nearest_p1 / 1000.0
-        score += nearest_p2 / 1000.0
-    return max(-0.99, min(0.99, score))
+    return 0
 
 
 # --- Search algorithms ---

@@ -269,7 +269,7 @@ class Application:
         elif algo == "IDA*":
             self.generator = algorithms.ida_star(active_maze, START_CELL, active_maze_goal)
         elif algo == "Hill Climbing":
-            self.generator = algorithms.hill_climbing(active_maze, START_CELL, active_maze_goal)
+            self.generator = algorithms.hill_climbing(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Simulated Annealing":
             self.generator = algorithms.simulated_annealing(active_maze, START_CELL, active_maze_goal)
         elif algo == "Beam Search":
@@ -314,11 +314,11 @@ class Application:
             self.grid_1 = grid_1
             self.generator = algorithms.and_or_search(grid_1, START_CELL, (5, 7))
         elif algo == "Simple Backtracking":
-            self.generator = algorithms.simple_backtracking(active_maze, START_CELL, active_maze_goal)
+            self.generator = algorithms.simple_backtracking(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Backtracking + AC-3":
-            self.generator = algorithms.backtracking_ac3(active_maze, START_CELL, active_maze_goal)
+            self.generator = algorithms.backtracking_ac3(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Backtracking + Forward Checking":
-            self.generator = algorithms.backtracking_forward_checking(active_maze, START_CELL, active_maze_goal)
+            self.generator = algorithms.backtracking_forward_checking(active_maze, START_CELL, GOAL_CELL)
         elif algo == "Minimax":
             self.generator = algorithms.minimax_search(active_maze, START_CELL, active_maze_goal)
         elif algo == "Alpha-Beta Pruning":

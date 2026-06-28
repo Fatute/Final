@@ -81,7 +81,7 @@ MAZE_1 = [
 MAZE_2 = [
     [2, 2, 2, 2, 2, 2, 2, 2],
     [2, 1, 1, 1, 1, 2, 1, 2],
-    [2, 0, 2, 0, 2, 2, 1, 2],
+    [2, 0, 2, 1, 2, 2, 1, 2],
     [2, 0, 1, 0, 1, 1, 1, 2],
     [2, 1, 2, 2, 0, 2, 0, 2],
     [2, 1, 1, 1, 1, 1, 1, 2],
@@ -89,14 +89,16 @@ MAZE_2 = [
 ]
 MAZE_3 = DEFAULT_MAZE
 MAZE_4 = [
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-    [2, 0, 1, 1, 1, 2, 1, 1, 1, 2, 1, 1, 2],
-    [2, 1, 2, 2, 1, 2, 1, 2, 1, 2, 1, 2, 2],
-    [2, 1, 1, 2, 1, 1, 1, 2, 1, 1, 1, 1, 2],
-    [2, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2, 1, 2],
-    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+    [2, 2, 2, 2, 2, 2, 2, 2],
+    [2, 0, 0, 0, 0, 0, 0, 2],  # Hành lang trên — Pacman bắt đầu (1,1)
+    [2, 0, 2, 2, 2, 2, 0, 2],  # Tường ngang, 2 lỗ: (2,1) và (2,6)
+    [2, 0, 0, 0, 0, 0, 0, 2],  # Hành lang giữa rộng
+    [2, 2, 2, 2, 2, 0, 2, 2],  # Tường ngang, chỉ lỗ (4,5)
+    [2, 0, 0, 0, 0, 0, 0, 2],  # Hành lang dưới — Goal tại (5,6)
+    [2, 2, 2, 2, 2, 2, 2, 2]
 ]
+CSP_START_CELL = (1, 1)   # Pacman góc trên trái
+CSP_GOAL_CELL  = (5, 6)   # Ô đích — ghost chặn đường đến đây
 MAZE_5 = [
     [2, 2, 2, 2, 2, 2, 2, 2],
     [2, 1, 1, 1, 1, 0, 1, 2],
@@ -174,15 +176,15 @@ ALGO_INFO = {
     },
     "Simple Backtracking": {
         "title": "Ghost Blocking: Simple Backtracking",
-        "desc": "Tìm tập nhỏ nhất các ghost để chặn TOÀN BỘ đường đi từ Pacman đến food. Ràng buộc: ghost không được đứng đúng ô spawn của Pacman. Thử tăng dần số ghost k=1,2,3... theo thứ tự cố định."
+        "desc": "Tìm tập nhỏ nhất các ghost để chặn TOÀN BỘ đường đi từ Pacman đến goal. Ghost không được đứng đúng ô Pacman và phải cách nhau ít nhất 2 ô. Thử tăng dần số ghost k=1,2,3... theo thứ tự cố định."
     },
     "Backtracking + AC-3": {
         "title": "Ghost Blocking: AC-3 (Arc Consistency)",
-        "desc": "Ghost Blocking kết hợp AC-3: trước mỗi bước thử, lọc domain còn lại chỉ giữ cell thực sự còn chặn được food, rồi enforce arc consistency Xi≠Xj — nếu domain nào co về 1 phần tử {v}, loại v khỏi domain các ghost khác. Domain rỗng → quay lui sớm."
+        "desc": "Ghost Blocking kết hợp AC-3: trước mỗi bước thử, lọc domain còn lại chỉ giữ cell thực sự còn chặn được goal và đủ cách các ghost khác, rồi enforce arc consistency. Domain rỗng → quay lui sớm."
     },
     "Backtracking + Forward Checking": {
         "title": "Ghost Blocking: Forward Checking",
-        "desc": "Ghost Blocking kết hợp kiểm tra trước: sau mỗi lần đặt ghost, kiểm tra xem các vị trí ứng viên còn lại có đủ khả năng chặn nốt food chưa bị chặn không. Nếu không → quay lui sớm, tránh lãng phí."
+        "desc": "Ghost Blocking kết hợp kiểm tra trước: sau mỗi lần đặt ghost, kiểm tra xem các vị trí ứng viên còn lại có đủ khả năng chặn nốt goal chưa bị chặn không. Nếu không → quay lui sớm, tránh lãng phí."
     },
     "Minimax": {
         "title": "Minimax Adversarial Search",

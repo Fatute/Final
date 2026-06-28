@@ -41,12 +41,19 @@ def make_path_visualizer(algo_func):
         yield set(), [], start, None, False
         
         if full_path:
+            all_food = {(r, c) for r in range(len(grid)) for c in range(len(grid[0])) if grid[r][c] == 1}
             for i in range(len(full_path)):
                 path_so_far = full_path[:i+1]
                 visited_so_far = set(path_so_far)
                 current_node = full_path[i]
                 is_last_step = (i == len(full_path) - 1)
-                yield visited_so_far, [], current_node, path_so_far, is_last_step
+                
+                if is_last_step:
+                    is_found = all_food.issubset(visited_so_far)
+                else:
+                    is_found = False
+                    
+                yield visited_so_far, [], current_node, path_so_far, is_found
         else:
             yield set(), [], start, None, False
     return visualizer
@@ -62,22 +69,33 @@ def make_blocking_csp_visualizer(csp_func):
         # Initial state: show full reachable area, no ghosts
         yield full_reachable, [], start, [], False
 
+        yielded_any = False
         for step in steps:
             stype = step[0]
             if stype == 'try':
                 _, current, placed, reachable = step
                 yield reachable, [], current, placed, False
+                yielded_any = True
             elif stype == 'backtrack':
                 _, removed, placed, reachable = step
                 curr = placed[-1] if placed else start
                 yield reachable, [], curr, placed, False
+                yielded_any = True
             elif stype == 'found':
                 _, placed = step
-                # Show empty reachable area (all paths blocked)
-                yield set(), [], placed[-1] if placed else start, placed, True
+                # Show remaining reachable area (goal is now blocked off)
+                from .csp import _bfs_reachable
+                final_reach = _bfs_reachable(grid, start, frozenset(placed))
+                yield final_reach, [], placed[-1] if placed else start, placed, True
+                yielded_any = True
 
+        # Always yield a final state so the GUI doesn't hang on StopIteration
         if not solution:
+            # No solution found — yield a clear "failed" state
             yield full_reachable, [], start, [], False
+        elif not yielded_any:
+            # Solution found but no intermediate steps recorded (shouldn't happen normally)
+            yield set(), [], start, solution, True
     return visualizer
 
 # --- Adversarial Helper Visualizer ---

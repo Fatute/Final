@@ -21,39 +21,31 @@ def get_node_visited(node):
         curr = curr.parent
     return visited
 
-# --- 1. Hill Climbing (Leo Đồi) ---
+# --- 1. Hill Climbing đơn giản (Leo Đồi) ---
 def hill_climbing(grid, start, goal):
+
     curr = start
     path = [curr]
     visited = {curr}
-    
+
     while heuristic(curr, visited, grid) > 0:
         neighbors = moves(grid, curr)
         if not neighbors:
             break
-            
-        best_neighbor = min(neighbors, key=lambda n: heuristic(n, visited, grid))
-        
-        if heuristic(best_neighbor, visited, grid) >= heuristic(curr, visited, grid):
+
+        best = min(neighbors, key=lambda pos: heuristic(pos, visited, grid))
+
+        # Nếu hàng xóm tốt nhất không làm giảm số lượng thức ăn còn lại so với hiện tại
+        # thì dừng lại (kẹt cực trị cục bộ)
+        if heuristic(best, visited, grid) >= heuristic(curr, visited, grid):
             break
-            
-        curr = best_neighbor
+
+        curr = best
         path.append(curr)
         visited.add(curr)
-        
-    if heuristic(curr, visited, grid) > 0:
-        return []
+
     return path
 
-
-def is_looping(next_state, node):
-    curr = node
-    while curr:
-        if curr.state == next_state:
-            if curr.food_eaten == node.food_eaten:
-                return True
-        curr = curr.parent
-    return False
 
 # --- 2. Beam Search ---
 def beam_search(grid, start, goal, k=2):
@@ -65,6 +57,7 @@ def beam_search(grid, start, goal, k=2):
         
     beam = [start_node]
     visited = {start}
+    best_node_so_far = start_node
     
     found_node = None
     level = 0
@@ -74,8 +67,6 @@ def beam_search(grid, start, goal, k=2):
         for node in beam:
             node_visited = get_node_visited(node)
             for next_state in moves(grid, node.state):
-                if is_looping(next_state, node):
-                    continue
                 new_g = node.g + 1
                 new_h = heuristic(next_state, node_visited, grid)
                 child = Node(next_state, parent=node, g=new_g, h=new_h)
@@ -109,11 +100,13 @@ def beam_search(grid, start, goal, k=2):
         
         for node in beam:
             visited.add(node.state)
+            if node.h < best_node_so_far.h:
+                best_node_so_far = node
             
     if found_node:
         return solution(found_node)
     else:
-        return []
+        return solution(best_node_so_far)
 
 
 # --- 3. Simulated Annealing (Giả Lập Luyện Kim) ---
@@ -150,6 +143,4 @@ def simulated_annealing(grid, start, goal):
             
         T *= alpha
         
-    if heuristic(curr, visited, grid) > 0:
-        return []
     return path
