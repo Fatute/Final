@@ -47,7 +47,7 @@ def hill_climbing(grid, start, goal):
     return path, len(visited)
 
 
-# --- 2. Beam Search ---
+# -- 2. Beam Search --
 def beam_search(grid, start, goal, k=2):
     start_node = Node(start, g=0, h=heuristic(start, set(), grid))
     start_node.food_eaten = {start} if grid[start[0]][start[1]] == 1 else set()
