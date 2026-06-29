@@ -51,9 +51,6 @@ Dưới đây là các minh họa quá trình hoạt động của các nhóm th
 ### Demo 1: Uninformed Search (BFS/DFS/UCS)
 <img width="800" height="623" alt="Đang ghi 2026-06-29 085349" src="https://github.com/user-attachments/assets/b498dba0-47b5-426b-aacd-cba722c304f7" />
 
-
-
-
 ### Demo 2: Informed Search (A* / Greedy)
 <img width="800" height="619" alt="Đang ghi 2026-06-29 090324" src="https://github.com/user-attachments/assets/df6d3177-2e31-459b-aa6e-82d368588131" />
 
@@ -62,17 +59,16 @@ Dưới đây là các minh họa quá trình hoạt động của các nhóm th
 <img width="800" height="624" alt="Đang ghi 2026-06-29 090951" src="https://github.com/user-attachments/assets/208582a1-9931-4ab7-b998-cc0dfedaeb03" />
 
 
-### Demo 4: Adversarial Search (Pacman vs Ghosts)
-![Demo Adversarial Search](./assets/adversarial_demo.gif)
-*(Thay thế bằng đường dẫn tới file GIF demo thuật toán đối kháng của bạn)*
+### Demo 4: Adversarial Search (Pacman vs Pacman)
+<img width="800" height="624" alt="Đang ghi 2026-06-29 093210" src="https://github.com/user-attachments/assets/e56dce6f-d607-4fb6-a6c0-11f8e2774267" />
+
 
 ### Demo 5: Constraint Satisfaction Problem (CSP)
-![Demo CSP](./assets/csp_demo.gif)
-*(Thay thế bằng đường dẫn tới file GIF demo bài toán ràng buộc của bạn)*
+<img width="800" height="624" alt="Đang ghi 2026-06-29 092656" src="https://github.com/user-attachments/assets/fae60f51-75b3-4ce3-8b4f-4560ca6de6d3" />
+
 
 ### Demo 6: Blind / Partial Observability Search
-![Demo Blind Search](./assets/blind_demo.gif)
-*(Thay thế bằng đường dẫn tới file GIF demo thuật toán quan sát một phần của bạn)*
+<img width="800" height="626" alt="Đang ghi 2026-06-29 091429" src="https://github.com/user-attachments/assets/f3277699-91ea-41a3-bb03-372b0bf22094" />
 
 ---
 
