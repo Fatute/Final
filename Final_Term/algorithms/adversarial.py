@@ -10,12 +10,14 @@ _visited_nodes_count = 0
 
 # --- Board helpers ---
 
+#điểm của các ô
 def get_center_score(r, c, rows=7, cols=8):
     center_r = rows / 2.0 - 0.5
     center_c = cols / 2.0 - 0.5
     dist = abs(r - center_r) + abs(c - center_c)
     return max(1, 10 - int(dist))
 
+#tìm nước đi hợp lệ
 def find_blank(board, grid):
     p1, p2, f_set, s1, s2, turn = board
     if turn == 'X':
@@ -34,6 +36,7 @@ def check_winner(board):
 def current_player(board):
     return board[5]
 
+#tính điểm và đổi lượt đi
 def result(board, row, col, sign):
     p1, p2, f_set, s1, s2, turn = board
     move = (row, col)
@@ -138,6 +141,7 @@ def expectimax(board, grid, d, visited_p1, visited_p2):
         unvisited = [m for m in blanks if m not in visited_p2]
         moves_to_explore = unvisited if unvisited else blanks
         rate = 1 / len(moves_to_explore)
+        #tính điểm trung bình cho nhánh để truyền lên trên
         value = sum(
             rate * (expectimax(result(board, m[0], m[1], 'O'), grid, d - 1, visited_p1, visited_p2)[0])
             for m in moves_to_explore

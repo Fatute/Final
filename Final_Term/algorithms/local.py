@@ -4,11 +4,10 @@ from .node import Node
 from .uninformed import moves, solution
 
 def heuristic(state, visited_set, grid):
-    # Remaining food count after visiting state
     new_visited = visited_set | {state}
     count = 0
     for r in range(len(grid)):
-        for c in range(len(grid[0])):
+        for c in range(len(grid[0])): #chỉ xét những ô chưa đi qua
             if grid[r][c] == 1 and (r, c) not in new_visited:
                 count += 1
     return count
@@ -16,7 +15,7 @@ def heuristic(state, visited_set, grid):
 def get_node_visited(node):
     visited = set()
     curr = node
-    while curr:
+    while curr: #quay ngược lại để lấy những ô đã đi qua
         visited.add(curr.state)
         curr = curr.parent
     return visited

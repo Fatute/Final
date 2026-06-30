@@ -133,6 +133,7 @@ def and_or_search(grid, start, goal, max_depth=15):
 
     or_search(start, [], max_depth)
     
+    #Hỗ trợ cho việc vẽ mũi tên ở phần visualize
     from collections import deque
     q = deque([(goal[0], goal[1])])
     visited = {goal: 0}
@@ -149,63 +150,4 @@ def and_or_search(grid, start, goal, max_depth=15):
                         policy[(nr, nc)] = a
                         
     return policy, len(policy)
-def bidirectional_search(grid, start, goal):
-    if start == goal:
-        return [start], 1
-    
-    fw_queue = [start]
-    fw_parent = {start: None}
-    
-    bw_queue = [goal]
-    bw_parent = {goal: None}
-    
-    def get_neighbors(pos):
-        r, c = pos
-        res = []
-        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nr, nc = r + dr, c + dc
-            if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]) and grid[nr][nc] != 2:
-                res.append((nr, nc))
-        return res
 
-    intersect = None
-    while fw_queue and bw_queue:
-        # Step forward
-        curr_fw = fw_queue.pop(0)
-        if curr_fw in bw_parent:
-            intersect = curr_fw
-            break
-        for nxt in get_neighbors(curr_fw):
-            if nxt not in fw_parent:
-                fw_parent[nxt] = curr_fw
-                fw_queue.append(nxt)
-                
-        # Step backward
-        curr_bw = bw_queue.pop(0)
-        if curr_bw in fw_parent:
-            intersect = curr_bw
-            break
-        for nxt in get_neighbors(curr_bw):
-            if nxt not in bw_parent:
-                bw_parent[nxt] = curr_bw
-                bw_queue.append(nxt)
-
-    if intersect is None:
-        return [], len(fw_parent) + len(bw_parent)
-
-    # Reconstruct path
-    path = []
-    # Forward path (from start to intersect)
-    curr = intersect
-    while curr is not None:
-        path.append(curr)
-        curr = fw_parent[curr]
-    path.reverse()
-    
-    # Backward path (from intersect's parent in backward tree to goal)
-    curr = bw_parent[intersect]
-    while curr is not None:
-        path.append(curr)
-        curr = bw_parent[curr]
-        
-    return path, len(fw_parent) + len(bw_parent)

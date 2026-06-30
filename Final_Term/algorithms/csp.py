@@ -5,6 +5,7 @@
 def _manhattan(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
+#Tìm tất cả các ô có thể đến được từ ô start
 def get_reachable_cells(grid, start):
     rows, cols = len(grid), len(grid[0])
     queue = [start]
@@ -95,7 +96,7 @@ def weight_constrained_forward(grid, start, goal, max_score):
             nr, nc = r + dr, c + dc
             if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != 2:
                 if (nr, nc) not in current_path:
-                    score = _get_coin_score(nr, nc) if (nr, nc) != goal else 0
+                    score = _get_coin_score(nr, nc) if (nr, nc) != goal else 0 #check domain
                     if current_score + score <= max_score:
                         neighbors.append((nr, nc))
                     

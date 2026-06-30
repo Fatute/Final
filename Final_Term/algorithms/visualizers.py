@@ -17,8 +17,7 @@ from .local import (
 from .blind import (
     sensorless_bfs as sensorless_bfs_standard,
     partial_bfs as partial_bfs_standard,
-    and_or_search as and_or_search_standard,
-    bidirectional_search as bidirectional_search_standard
+    and_or_search as and_or_search_standard
 )
 from .adversarial import (
     minimax_search as minimax_search_standard,
@@ -310,7 +309,6 @@ beam_search = make_path_visualizer(beam_search_standard)
 sensorless_bfs = make_sensorless_visualizer(sensorless_bfs_standard)
 partial_bfs = make_partial_visualizer(partial_bfs_standard)
 and_or_search = make_and_or_visualizer(and_or_search_standard)
-bidirectional_search = make_path_visualizer(bidirectional_search_standard)
 
 from .csp import weight_constrained_simple, weight_constrained_forward, weight_constrained_ac3
 weight_constrained_simple = make_weight_csp_visualizer(weight_constrained_simple)
