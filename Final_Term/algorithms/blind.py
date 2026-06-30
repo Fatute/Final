@@ -15,6 +15,7 @@ def sensorless_bfs(grid_1, grid_2, start_1, start_2, goal):
         return (r, c, m)
         
     initial_belief = frozenset([(start_1[0], start_1[1], 1), (start_2[0], start_2[1], 2)])
+    visited = set([initial_belief])
     
     # Check if already at goal
     def is_goal(belief):
@@ -24,7 +25,6 @@ def sensorless_bfs(grid_1, grid_2, start_1, start_2, goal):
         return [], len(visited)
         
     queue = [(initial_belief, [])]
-    visited = set([initial_belief])
     actions = ['U', 'D', 'L', 'R']
     
     while queue:
@@ -61,6 +61,7 @@ def partial_bfs(grid_1, grid_2, start, goal):
         return (r, c, m)
         
     initial_belief = frozenset([(start[0], start[1], 1), (start[0], start[1], 2)])
+    visited = set([initial_belief])
     
     def is_goal(belief):
         return all((r, c) == goal for r, c, m in belief)
@@ -69,7 +70,6 @@ def partial_bfs(grid_1, grid_2, start, goal):
         return [], len(visited)
         
     queue = [(initial_belief, [])]
-    visited = set([initial_belief])
     actions = ['U', 'D', 'L', 'R']
     
     while queue:
@@ -131,10 +131,8 @@ def and_or_search(grid, start, goal, max_depth=15):
                 return False
         return True
 
-    # 1. Gọi and_or_search chính (gồm or_search và and_search)
     or_search(start, [], max_depth)
     
-    # 2. Fallback to BFS to guarantee a robust heuristic policy for all states
     from collections import deque
     q = deque([(goal[0], goal[1])])
     visited = {goal: 0}

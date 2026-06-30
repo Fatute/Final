@@ -14,10 +14,10 @@ def solution(node):
 def moves(grid, state):
     r, c = state
     directions = [
-        [0, 1],   # Right
-        [0, -1],  # Left
-        [1, 0],   # Down
-        [-1, 0]   # Up
+        [0, 1],   
+        [0, -1],  
+        [1, 0],  
+        [-1, 0]   
     ]
     valid_move = []
     for x, y in directions:
@@ -43,7 +43,6 @@ def priority_queue(frontier):
 
 #Back to old road
 def find_shortest_path(grid, start, end):
-    """BFS helper to find the shortest continuous path between two cells."""
     if start == end:
         return [start]
     queue = [[start]]
@@ -174,8 +173,6 @@ def ucs(grid, start, goal):
         for state in moves(grid, node.state):
             if state not in reached_set:
                 child = Node(state, parent=node, g=node.g + 1)
-                # If there's an existing node with the same state in frontier,
-                # we update it if the new cost is smaller
                 existing = next((n for n in frontier if n.state == state), None)
                 if existing:
                     if child.g < existing.g:
