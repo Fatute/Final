@@ -3,7 +3,7 @@
 ### Thành Viên Nhóm 2
 - Phạm Minh Luân - 24110277
 - Trương Tấn Phát - 24110298
-- Lê Tấn Tài - 254110319
+- Lê Tấn Tài - 24110319
 
 ## Giới thiệu Dự án (Project Introduction)
 Dự án này là một phiên bản mô phỏng trực quan của trò chơi Pacman, được xây dựng bằng Python. Mục tiêu chính của dự án là triển khai và trực quan hóa các thuật toán Tìm kiếm và Trí tuệ Nhân tạo (AI Search Algorithms) khác nhau. Thay vì được điều khiển bởi người chơi, Pacman sẽ tự động tìm đường đi tối ưu đến các mục tiêu (thức ăn) hoặc tránh/ăn ma dựa trên các thuật toán được lập trình sẵn.
