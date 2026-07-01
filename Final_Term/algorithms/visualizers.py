@@ -223,8 +223,19 @@ def make_partial_visualizer(algo_func):
                     return (nr, nc)
                 return (r, c)
                 
+            def get_obs(r, c, grid):
+                obs = []
+                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < len(grid) and 0 <= nc < len(grid[0]):
+                        obs.append(grid[nr][nc] == 2)
+                    else:
+                        obs.append(True)
+                return tuple(obs)
+                
             t_pos, b2_pos = start, start
             path_t, path_b1, path_b2 = [t_pos], [t_pos], [b2_pos]
+            b2_active = True
             
             # We yield 7 values: visited, frontier, current_node, path, found, path_b1, path_b2
             yield set(), [], t_pos, list(path_t), False, list(path_b1), list(path_b2)
@@ -232,11 +243,17 @@ def make_partial_visualizer(algo_func):
             if actions:
                 for i, a in enumerate(actions):
                     t_pos = apply_action(t_pos[0], t_pos[1], 1, a)
-                    b2_pos = apply_action(b2_pos[0], b2_pos[1], 2, a)
                     
+                    if b2_active:
+                        b2_pos_next = apply_action(b2_pos[0], b2_pos[1], 2, a)
+                        if get_obs(t_pos[0], t_pos[1], grid_1) == get_obs(b2_pos_next[0], b2_pos_next[1], grid_2):
+                            b2_pos = b2_pos_next
+                            path_b2.append(b2_pos)
+                        else:
+                            b2_active = False
+                            
                     path_t.append(t_pos)
                     path_b1.append(t_pos)
-                    path_b2.append(b2_pos)
                     
                     is_last_step = (i == len(actions) - 1)
                     yield set(path_t), [], t_pos, list(path_t), is_last_step, list(path_b1), list(path_b2)

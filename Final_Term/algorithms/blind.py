@@ -60,7 +60,22 @@ def partial_bfs(grid_1, grid_2, start, goal):
             return (nr, nc, m)
         return (r, c, m)
         
-    initial_belief = frozenset([(start[0], start[1], 1), (start[0], start[1], 2)])
+    def get_obs(r, c, m):
+        grid = grid_1 if m == 1 else grid_2
+        obs = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols:
+                obs.append(grid[nr][nc] == 2)
+            else:
+                obs.append(True)
+        return tuple(obs)
+        
+    start_obs = get_obs(start[0], start[1], 1)
+    initial_belief = frozenset([
+        (start[0], start[1], m) for m in [1, 2]
+        if get_obs(start[0], start[1], m) == start_obs
+    ])
     visited = set([initial_belief])
     
     def is_goal(belief):
@@ -69,23 +84,31 @@ def partial_bfs(grid_1, grid_2, start, goal):
     if is_goal(initial_belief):
         return [], len(visited)
         
-    queue = [(initial_belief, [])]
+    queue = [(initial_belief, [], start)]
     actions = ['U', 'D', 'L', 'R']
     
     while queue:
-        current_belief, current_actions = queue.pop(0)
+        current_belief, current_actions, true_pos = queue.pop(0)
         
         for action in actions:
-            new_belief = frozenset([apply_action(r, c, m, action) for r, c, m in current_belief])
+            true_next = apply_action(true_pos[0], true_pos[1], 1, action)
+            new_true_pos = (true_next[0], true_next[1])
+            true_obs = get_obs(new_true_pos[0], new_true_pos[1], 1)
             
-            if new_belief not in visited:
+            new_belief = frozenset([
+                (nr, nc, nm) for br, bc, bm in current_belief
+                for nr, nc, nm in [apply_action(br, bc, bm, action)]
+                if get_obs(nr, nc, nm) == true_obs
+            ])
+            
+            if new_belief and new_belief not in visited:
                 new_actions = current_actions + [action]
                 
                 if is_goal(new_belief):
                     return new_actions, len(visited)
                     
                 visited.add(new_belief)
-                queue.append((new_belief, new_actions))
+                queue.append((new_belief, new_actions, new_true_pos))
                 
     return [], len(visited)
 
